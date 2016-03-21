@@ -1,0 +1,16 @@
+opam-version: "1"
+maintainer: "leo@lpw25.net"
+authors: [
+  "Leo White <leo@lpw25.net>"
+]
+license: "ISC"
+version: "0.3.0"
+depends: [
+  "cmdliner"
+  "cohttp"
+  "ocamlfind"
+]
+build: [
+  [make]
+  [make "install"]
+]
