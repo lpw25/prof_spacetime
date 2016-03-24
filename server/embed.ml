@@ -24,17 +24,11 @@ body {
 </head>
 <body>
 <script type="text/javascript" src="graph.js"></script>
-<script type="text/javascript" src="client.js"></script>
 </body>
 </html>
 |}
 
-(* Long delimiter which hopefully won't clash with js_of_ocaml output *)
-let js = {xxxxxxxxxx|
-// %JS%
-|xxxxxxxxxx}
-
-let graph = {|
+let js = {|
 var margin = {top: 100, right: 200, bottom: 100, left: 200};
 
 var width = 1280 - margin.left - margin.right;
@@ -109,27 +103,29 @@ svg.append("g")
 
 function graph(input, dispatch) {
 
-  var names = d3.entries(input.names);
+  var locations = d3.entries(input.locations);
   var snapshots = input.snapshots;
 
-  color1.domain(names.map(function (name) { return name.key }));
-  color2.domain(names.map(function (name) { return name.key }).reverse());
+  color1.domain(locations.map(function (location)
+     { return location.key }));
+  color2.domain(locations.map(function (location)
+     { return location.key }).reverse());
 
-  var layers = stack(names.map(function(name) {
+  var layers = stack(locations.map(function(location) {
     return {
-      id: name.key,
-      display: name.value.display,
-      foreign: name.value.foreign,
-      depth: name.value.depth,
+      addr: location.key,
+      display: location.value.display,
+      foreign: location.value.foreign,
+      depth: location.value.depth,
       values: snapshots.map(function(d) {
-        return {time: d.time, y: d.values[name.key]};
+        return {time: d.time, y: d.values[location.key]};
       })
     };
   }));
 
   x.domain(d3.extent(snapshots, function(d) { return d.time; }));
   y.domain([0, d3.max(snapshots, function(d) {
-    return d3.sum(layers, function (b) { return d.values[b.id]; });
+    return d3.sum(layers, function (b) { return d.values[b.addr]; });
   })]);
 
   svg.select("#xaxis").call(xAxis);
@@ -169,12 +165,12 @@ function graph(input, dispatch) {
     .on("mouseleave", function(d) {
       d3.select(this).attr("stroke", "none");
     })
-    .on("click", function (d) { dispatch.select(d.id) })
+    .on("click", function (d) { dispatch.select(d.addr) })
     .attr("fill", function(d) {
        if(d.depth % 2 == 0) {
-         return color1(d.id);
+         return color1(d.addr);
        } else {
-         return color2(d.id);
+         return color2(d.addr);
        }
      });
 
@@ -182,12 +178,23 @@ function graph(input, dispatch) {
 
 }
 
-function run(init, change) {
-  var dispatch = d3.dispatch("select");
-  graph(init, dispatch);
-  dispatch.on("select", function (id) {
-    var state = change(id);
-    graph(state, dispatch);
-  });
+function fetch(addr, dispatch) {
+  var xmlhttp = new XMLHttpRequest();
+  xmlhttp.onload = function () {
+    if(xmlhttp.status == 200) {
+      var state = JSON.parse(xmlhttp.responseText);
+      graph(state, dispatch);
+    }
+  };
+  xmlhttp.open("GET", addr, true);
+  xmlhttp.send();
 }
+
+var path = "data";
+var dispatch = d3.dispatch("select");
+fetch(path, dispatch);
+dispatch.on("select", function (addr) {
+  path = path + "/" + addr;
+  fetch(path, dispatch);
+});
 |}

@@ -1,0 +1,7 @@
+
+true:   package(yojson)
+true:   package(cohttp)
+true:   package(cohttp.lwt)
+true:   package(cmdliner)
+true:   package(lwt)
+true:   bin_annot
