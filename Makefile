@@ -1,17 +1,16 @@
 
 CP=cp
 
-OCAMLBUILD_FLAGS=-use-ocamlfind -I server -lflags aprof.cmxa
+OCAMLBUILD_FLAGS=-use-ocamlfind -I src -I bin -lflags spacetime_lib.cmxa
 OCAMLBUILD=ocamlbuild $(OCAMLBUILD_FLAGS)
 
 all: prof-alloc
 
-# Server
-server.native:
-	$(OCAMLBUILD) server.native
+main.native:
+	$(OCAMLBUILD) main.native
 
-prof-alloc: server.native
-	$(CP) server.native prof-alloc
+prof-alloc: main.native
+	$(CP) main.native prof-alloc
 
 clean:
 	$(OCAMLBUILD) -clean

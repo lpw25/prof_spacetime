@@ -2,12 +2,12 @@
 type t = {
   max_depth: int;
   time : float;
-  stats : AProf.Stats.t;
+  stats : Spacetime_lib.Stats.t;
   index : projection Address.Map.t;
 }
 
 and projection = {
-  entries : AProf.Entries.t;
+  entries : Spacetime_lib.Entries.t;
   snapshot : t Lazy.t;
   blocks : int Lazy.t;
   words : int Lazy.t;
@@ -33,19 +33,19 @@ let nth_or_last max l =
 
 let rec create max_depth time stats entries =
   let preindex =
-    AProf.Entries.fold
+    Spacetime_lib.Entries.fold
       (fun entry acc ->
-         let backtrace = AProf.Entry.backtrace entry in
+         let backtrace = Spacetime_lib.Entry.backtrace entry in
          match nth_or_last max_depth backtrace with
          | None -> acc
          | Some (loc, _) ->
-           let addr = Address.of_int64 (AProf.Location.address loc) in
+           let addr = Address.of_int64 (Spacetime_lib.Location.address loc) in
            let entries =
              try
                Address.Map.find addr acc
-             with Not_found -> AProf.Entries.empty
+             with Not_found -> Spacetime_lib.Entries.empty
            in
-           let entries = AProf.Entries.add entry entries in
+           let entries = Spacetime_lib.Entries.add entry entries in
            Address.Map.add addr entries acc)
       entries Address.Map.empty
   in
@@ -57,14 +57,14 @@ let rec create max_depth time stats entries =
          in
          let words =
            lazy
-             (AProf.Entries.fold
-                (fun entry acc -> acc + (AProf.Entry.words entry))
+             (Spacetime_lib.Entries.fold
+                (fun entry acc -> acc + (Spacetime_lib.Entry.words entry))
                 entries 0)
          in
          let blocks =
            lazy
-             (AProf.Entries.fold
-                (fun entry acc -> acc + (AProf.Entry.blocks entry))
+             (Spacetime_lib.Entries.fold
+                (fun entry acc -> acc + (Spacetime_lib.Entry.blocks entry))
                 entries 0)
          in
          {entries; snapshot; words; blocks})
@@ -73,9 +73,9 @@ let rec create max_depth time stats entries =
   { max_depth; time; stats; index }
 
 let initial snapshot =
-  let time = AProf.Snapshot.time snapshot in
-  let stats = AProf.Snapshot.stats snapshot in
-  let entries = AProf.Snapshot.entries snapshot in
+  let time = Spacetime_lib.Snapshot.time snapshot in
+  let stats = Spacetime_lib.Snapshot.stats snapshot in
+  let entries = Spacetime_lib.Snapshot.entries snapshot in
   create 0 time stats entries
 
 let project t addr =
@@ -86,10 +86,10 @@ let project t addr =
 let locations' acc snapshot =
   Address.Map.fold
     (fun addr proj acc ->
-       match AProf.Entries.choose proj.entries with
+       match Spacetime_lib.Entries.choose proj.entries with
        | exception Not_found -> acc
        | entry ->
-         let backtrace = AProf.Entry.backtrace entry in
+         let backtrace = Spacetime_lib.Entry.backtrace entry in
          match nth_or_last snapshot.max_depth backtrace with
          | None -> acc
          | Some(location, depth) ->
@@ -99,8 +99,16 @@ let locations' acc snapshot =
 
 let locations snapshot = locations' Address.Map.empty snapshot
 
+let addresses' acc snapshot =
+  Address.Map.fold
+    (fun addr _ acc -> Address.Set.add addr acc)
+    snapshot.index acc
+
+let addresses snapshot =
+  addresses' Address.Set.empty snapshot
+
 let to_json locations t =
-  let heap = AProf.Stats.heap_words t.stats in
+  let heap = Spacetime_lib.Stats.heap_words t.stats in
   let words =
     Address.Map.fold
       (fun addr _ acc ->

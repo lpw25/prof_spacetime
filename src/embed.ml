@@ -19,7 +19,7 @@ body {
   text-anchor: end;
 }
 </style>
-<script type="text/javascript" src="//d3js.org/d3.v3.min.js" charset="utf-8">
+<script type="text/javascript" src="http://d3js.org/d3.v3.min.js" charset="utf-8">
 </script>
 </head>
 <body>
@@ -186,7 +186,7 @@ function fetch(addr, dispatch) {
       graph(state, dispatch);
     }
   };
-  xmlhttp.open("GET", addr, true);
+  xmlhttp.open("GET", addr + "/series.json", true);
   xmlhttp.send();
 }
 

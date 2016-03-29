@@ -12,9 +12,21 @@ let project snapshots addr =
   snapshots
 
 let locations snapshots =
-    List.fold_left
-      (fun acc snapshot -> Snapshot.locations' acc snapshot)
-      Address.Map.empty snapshots
+  List.fold_left
+    Snapshot.locations'
+    Address.Map.empty snapshots
+
+let addresses snapshots =
+  List.fold_left
+    Snapshot.addresses'
+    Address.Set.empty snapshots
+
+let projections snapshots =
+  Address.Set.fold
+    (fun addr acc ->
+       let proj = project snapshots addr in
+       Address.Map.add addr proj acc)
+    (addresses snapshots) Address.Map.empty
 
 let to_json snapshots =
   let locations = locations snapshots in

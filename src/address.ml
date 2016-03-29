@@ -17,6 +17,8 @@ module Ord = struct
 
 end
 
+module Set = Set.Make(Ord)
+
 module Map = struct
 
   include Map.Make(Ord)
