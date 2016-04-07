@@ -37,6 +37,8 @@ var height = 640 - margin.top - margin.bottom;
 
 var popup_padding = 4;
 
+var widget_width = 640;
+
 var x = d3.scale.linear().range([0, width]);
 
 var y = d3.scale.linear().range([height, 0]);
@@ -101,10 +103,13 @@ svg.append("g")
   .attr("class", "axis")
   .attr("id","yaxis");
 
+var widget = d3.select("body").append("ul");
+
 function graph(input, dispatch) {
 
   var locations = d3.entries(input.locations);
   var snapshots = input.snapshots;
+  var frames = input.frames;
 
   color1.domain(locations.map(function (location)
      { return location.key }));
@@ -123,7 +128,7 @@ function graph(input, dispatch) {
     };
   }));
 
-  x.domain(d3.extent(snapshots, function(d) { return d.time; }));
+  x.domain([0, d3.max(snapshots, function(d) { return d.time; })]);
   y.domain([0, d3.max(snapshots, function(d) {
     return d3.sum(layers, function (b) { return d.values[b.addr]; });
   })]);
@@ -176,25 +181,40 @@ function graph(input, dispatch) {
 
   layer.exit().remove();
 
+  var frame =
+    widget.selectAll("li")
+      .data(frames);
+
+  frame.enter().append("li");
+
+  frame.text(function (d) { return d.display;});
+
+  frame.exit().remove();
+
 }
 
-function fetch(addr, dispatch) {
+var dispatch = d3.dispatch("select");
+var path = "data";
+
+function fetch(addr) {
+  var next;
+  if(addr) {
+    next = path + "/" + addr;
+  } else {
+    next = path
+  }
   var xmlhttp = new XMLHttpRequest();
   xmlhttp.onload = function () {
     if(xmlhttp.status == 200) {
       var state = JSON.parse(xmlhttp.responseText);
+      path = next;
       graph(state, dispatch);
     }
   };
-  xmlhttp.open("GET", addr + "/series.json", true);
+  xmlhttp.open("GET", next + "/series.json", true);
   xmlhttp.send();
 }
 
-var path = "data";
-var dispatch = d3.dispatch("select");
-fetch(path, dispatch);
-dispatch.on("select", function (addr) {
-  path = path + "/" + addr;
-  fetch(path, dispatch);
-});
+fetch();
+dispatch.on("select", fetch);
 |}

@@ -17,10 +17,6 @@ let time t = t.time
 
 let stats t = t.stats
 
-let empty max_depth time stats =
-  let index = Address.Map.empty in
-  { max_depth; time; stats; index; }
-
 let nth_or_last max l =
   let rec loop n = function
     | [] -> None
@@ -80,7 +76,8 @@ let initial snapshot =
 
 let project t addr =
   match Address.Map.find addr t.index with
-  | exception Not_found -> empty (t.max_depth + 1) t.time t.stats
+  | exception Not_found ->
+    { t with max_depth = t.max_depth + 1; index = Address.Map.empty; }
   | { snapshot = lazy snapshot } -> snapshot
 
 let locations' acc snapshot =
@@ -108,7 +105,10 @@ let addresses snapshot =
   addresses' Address.Set.empty snapshot
 
 let to_json locations t =
-  let heap = Spacetime_lib.Stats.heap_words t.stats in
+  let scanned = Spacetime_lib.Stats.words_scanned t.stats in
+  let scanned_profinfo =
+    Spacetime_lib.Stats.words_scanned_with_profinfo t.stats
+  in
   let words =
     Address.Map.fold
       (fun addr _ acc ->
@@ -117,7 +117,12 @@ let to_json locations t =
          | { words = lazy words } -> Address.Map.add addr words acc)
       locations Address.Map.empty
   in
-  let values = Address.Map.to_json (fun words -> `Int words) words in
+  let values = Address.Map.to_json_assoc (fun words -> `Int words) words in
+  let values =
+    if t.max_depth = 0 then
+      `Assoc (("UNKNOWN", `Int (scanned - scanned_profinfo)) :: values)
+    else
+      `Assoc values
+  in
   `Assoc ["time", `Float t.time;
-          "heap", `Int heap;
           "values", values]

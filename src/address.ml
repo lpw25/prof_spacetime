@@ -23,13 +23,10 @@ module Map = struct
 
   include Map.Make(Ord)
 
-  let to_json value_to_json t =
-    let assoc =
-      fold
-        (fun key value acc ->
-           (to_string key, value_to_json value) :: acc)
-        t []
-    in
-    `Assoc assoc
+  let to_json_assoc value_to_json t =
+    fold
+      (fun key value acc ->
+         (to_string key, value_to_json value) :: acc)
+      t []
 
 end
