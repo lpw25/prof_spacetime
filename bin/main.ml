@@ -1,6 +1,8 @@
 
 let main address port dump profile =
+  Printf.printf "Processsing series...%!";
   let data = Spacetime_lib.Series.create profile in
+  Printf.printf "done\n%!";
   let series = Series.initial data in
   match dump with
   | None -> Serve.serve ~address ~port series
