@@ -170,7 +170,7 @@ function graph(input, dispatch) {
     .on("mouseleave", function(d) {
       d3.select(this).attr("stroke", "none");
     })
-    .on("click", function (d) { dispatch.select(d.addr) })
+    .on("click", function (d) { dispatch.select(d.addr); })
     .attr("fill", function(d) {
        if(d.depth % 2 == 0) {
          return color1(d.addr);
@@ -185,24 +185,23 @@ function graph(input, dispatch) {
     widget.selectAll("li")
       .data(frames);
 
-  frame.enter().append("li");
+  frame.enter().append("li")
+    .style("cursor","pointer")
+    .style("color","blue")
+    .style("text-decoration","underline");
 
   frame.text(function (d) { return d.display;});
+  frame.on("click", function (d) { return dispatch.frame(d.path); });
 
   frame.exit().remove();
 
 }
 
-var dispatch = d3.dispatch("select");
-var path = "data";
+var dispatch = d3.dispatch("select", "frame");
+var kind = "data";
+var path = "";
 
-function fetch(addr) {
-  var next;
-  if(addr) {
-    next = path + "/" + addr;
-  } else {
-    next = path
-  }
+function fetch(next) {
   var xmlhttp = new XMLHttpRequest();
   xmlhttp.onload = function () {
     if(xmlhttp.status == 200) {
@@ -211,10 +210,11 @@ function fetch(addr) {
       graph(state, dispatch);
     }
   };
-  xmlhttp.open("GET", next + "/series.json", true);
+  xmlhttp.open("GET", kind + next + "/series.json", true);
   xmlhttp.send();
 }
 
-fetch();
-dispatch.on("select", fetch);
+fetch(path);
+dispatch.on("select", function (addr) { fetch(path + "/" + addr); });
+dispatch.on("frame", function (path) { fetch(path); });
 |}

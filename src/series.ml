@@ -2,7 +2,7 @@
 type t = {
   max_depth: int;
   snapshots: Snapshot.t list;
-  frames: Location.t list;
+  frames: (Address.t * Location.t) list;
   locations: Location.t Address.Map.t Lazy.t;
 }
 
@@ -23,7 +23,7 @@ let project { max_depth; snapshots; frames; locations } addr =
   let parent_locations = Lazy.force locations in
   let frames =
     match Address.Map.find addr parent_locations with
-    | frame -> frame :: frames
+    | frame -> (addr, frame) :: frames
     | exception Not_found -> frames
   in
   let snapshots =
@@ -46,7 +46,7 @@ let projections t =
        Address.Map.add addr proj acc)
     (addresses t) Address.Map.empty
 
-let to_json { max_depth; snapshots; frames; locations } =
+let locations_json { max_depth; locations } =
   let locations = Lazy.force locations in
   let locations_json_assoc =
     Address.Map.to_json_assoc Location.to_json locations
@@ -56,13 +56,34 @@ let to_json { max_depth; snapshots; frames; locations } =
              "display", `String "UNKNOWN";
              "foreign", `Bool false ]
   in
-  let locations_json =
     if max_depth = 0 then
       `Assoc (("UNKNOWN", unknown_json) :: locations_json_assoc)
     else `Assoc locations_json_assoc
+
+let snapshots_json { snapshots; locations } =
+  let locations = Lazy.force locations in
+  let jsons = List.map (Snapshot.to_json locations) snapshots in
+  `List jsons
+
+let frames_json { frames } =
+  let star_json =
+    `Assoc [ "display", `String "*";
+             "path", `String "" ]
   in
-  let snapshots_json = List.map (Snapshot.to_json locations) snapshots in
-  let frames_json = List.map Location.to_json frames in
-    `Assoc [ "locations", locations_json;
-             "snapshots", `List snapshots_json;
-             "frames", `List frames_json; ]
+  let _, jsons =
+    List.fold_right
+      (fun (addr, loc) (path, jsons) ->
+         let path = path ^ "/" ^ (Address.to_string addr) in
+         let json =
+           `Assoc [ "display", `String (Location.display loc);
+                    "path", `String path ]
+         in
+         (path, json :: jsons))
+      frames ("", [star_json])
+  in
+  `List jsons
+
+let to_json t =
+  `Assoc [ "locations", locations_json t;
+           "snapshots", snapshots_json t;
+           "frames", frames_json t; ]

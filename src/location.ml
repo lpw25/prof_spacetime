@@ -23,6 +23,8 @@ let create ~depth ~location =
   let foreign = Spacetime_lib.Location.foreign location in
   { depth; display; foreign }
 
+let display { display } = display
+
 let to_json { depth; display; foreign } =
   `Assoc [ "depth", `Int depth;
            "display", `String display;
