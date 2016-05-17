@@ -104,11 +104,7 @@ let addresses' acc snapshot =
 let addresses snapshot =
   addresses' Address.Set.empty snapshot
 
-let to_json locations t =
-  let scanned = Spacetime_lib.Stats.words_scanned t.stats in
-  let scanned_profinfo =
-    Spacetime_lib.Stats.words_scanned_with_profinfo t.stats
-  in
+let get_values' locations t =
   let words =
     Address.Map.fold
       (fun addr _ acc ->
@@ -117,8 +113,29 @@ let to_json locations t =
          | { words = lazy words } -> Address.Map.add addr words acc)
       locations Address.Map.empty
   in
-  let values = Address.Map.to_json_assoc (fun words -> `Int words) words in
+  let values = Address.Map.to_assoc_list words in
+  let values = Address.Assoc_list.sort_val (fun x y -> compare y x) values in
+  values
+
+let to_summary_list locations t =
+  let values = get_values' locations t in
+  List.map (fun (address, value) ->
+    let key =
+      match Address.Map.find address locations with
+      | loc -> Location.display loc
+      | exception Not_found -> Address.to_string address
+    in
+    address, key, value)
+    values
+
+let to_json locations t =
+  let values = get_values' locations t in
+  let values = Address.Assoc_list.to_json_assoc (fun words -> `Int words) values in
   let values =
+    let scanned = Spacetime_lib.Stats.words_scanned t.stats in
+    let scanned_profinfo =
+      Spacetime_lib.Stats.words_scanned_with_profinfo t.stats
+    in
     if t.max_depth = 0 then
       `Assoc (("UNKNOWN", `Int (scanned - scanned_profinfo)) :: values)
     else

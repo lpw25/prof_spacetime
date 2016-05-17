@@ -4,4 +4,5 @@ true:   package(cohttp)
 true:   package(cohttp.lwt)
 true:   package(cmdliner)
 true:   package(lwt)
+true:   package(lambda-term)
 true:   bin_annot

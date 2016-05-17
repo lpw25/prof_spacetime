@@ -19,3 +19,5 @@ val addresses : t -> Address.Set.t
 val addresses' : Address.Set.t -> t -> Address.Set.t
 
 val to_json : Location.t Address.Map.t -> t -> Yojson.Basic.json
+
+val to_summary_list : Location.t Address.Map.t -> t -> (Address.t * string * int) list
