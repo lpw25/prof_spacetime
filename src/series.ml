@@ -6,6 +6,8 @@ type t = {
   locations: Location.t Address.Map.t Lazy.t;
 }
 
+let snapshots t = t.snapshots
+
 let locations_of_snapshots snapshots =
   List.fold_left
     Snapshot.locations'

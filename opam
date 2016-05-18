@@ -11,6 +11,7 @@ depends: [
   "ocamlfind"
   "yojson"
   "lwt"
+  "lambda-term"
 ]
 build: [
   [make]

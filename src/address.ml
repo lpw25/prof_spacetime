@@ -19,6 +19,19 @@ end
 
 module Set = Set.Make(Ord)
 
+module Assoc_list = struct
+  type nonrec 'a t = (t * 'a) list
+
+  let sort_val cmp t =
+    List.sort (fun a b -> cmp (snd a) (snd b)) t
+
+  let to_json_assoc value_to_json t =
+    List.fold_left
+      (fun acc (key,value) ->
+         (to_string key, value_to_json value) :: acc)
+      [] t
+end
+
 module Map = struct
 
   include Map.Make(Ord)
@@ -29,4 +42,7 @@ module Map = struct
          (to_string key, value_to_json value) :: acc)
       t []
 
+  let to_assoc_list t =
+    fold (fun key value acc -> (key, value) :: acc) t []
 end
+
