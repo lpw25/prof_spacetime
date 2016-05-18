@@ -21,8 +21,14 @@ let split_path path from until =
   in
   loop path [] from from until
 
-let datad = "/data"
-let datad_len = String.length datad
+let reduced_d = "/red"
+let all_d = "/all"
+
+let prefixd_len =
+  let reduced_len = String.length reduced_d in
+  let add_len = String.length all_d in
+  assert (reduced_len = add_len);
+  reduced_len
 
 let jsonf = "series.json"
 let jsonf_len = String.length jsonf
@@ -53,12 +59,19 @@ let serve ~address ~port series =
       Server.respond_string ~headers ~status ~body ()
     | _ ->
       let len = String.length path in
-      if len >= (datad_len + jsonf_len) then begin
-        let head = String.sub path 0 datad_len in
+      if len >= (prefixd_len + jsonf_len) then begin
+        let head = String.sub path 0 prefixd_len in
         let tail = String.sub path (len - jsonf_len) jsonf_len in
-        if head = "/data" && tail = "series.json" then begin
+        let serve, reduced =
+          if tail = jsonf then begin
+            if head = reduced_d then true, true
+            else if head = all_d then true, false
+            else false, false
+          end else false, false
+        in
+        if serve then begin
           try
-            let segments = split_path path datad_len (len - jsonf_len) in
+            let segments = split_path path prefixd_len (len - jsonf_len) in
             let addrs =
               List.map
                 (fun str -> Address.of_int64 (Int64.of_string str)) segments
@@ -69,9 +82,18 @@ let serve ~address ~port series =
             in
             let headers = header_json in
             let status = `OK in
-            let body =
-              Yojson.Basic.pretty_to_string ~std:true (Series.to_json series)
+            let json =
+              if reduced then begin
+                let path_body =
+                  String.sub path prefixd_len (len - (prefixd_len + jsonf_len))
+                in
+                let other_path = all_d ^ path_body in
+                Series.to_reduced_json other_path series
+              end else begin
+                Series.to_json series
+              end
             in
+            let body = Yojson.Basic.pretty_to_string ~std:true json in
             Server.respond_string ~headers ~status ~body ()
           with Failure _ -> Server.respond_not_found ~uri ()
         end else begin

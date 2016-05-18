@@ -110,6 +110,7 @@ function graph(input, dispatch) {
   var locations = d3.entries(input.locations);
   var snapshots = input.snapshots;
   var frames = input.frames;
+  var depth = input.depth;
 
   color1.domain(locations.map(function (location)
      { return location.key }));
@@ -121,7 +122,7 @@ function graph(input, dispatch) {
       addr: location.key,
       display: location.value.display,
       foreign: location.value.foreign,
-      depth: location.value.depth,
+      select: location.value.select,
       values: snapshots.map(function(d) {
         return {time: d.time, y: d.values[location.key]};
       })
@@ -170,9 +171,9 @@ function graph(input, dispatch) {
     .on("mouseleave", function(d) {
       d3.select(this).attr("stroke", "none");
     })
-    .on("click", function (d) { dispatch.select(d.addr); })
+    .on("click", function (d) { dispatch.select(d.select); })
     .attr("fill", function(d) {
-       if(d.depth % 2 == 0) {
+       if(depth % 2 == 0) {
          return color1(d.addr);
        } else {
          return color2(d.addr);
@@ -198,23 +199,20 @@ function graph(input, dispatch) {
 }
 
 var dispatch = d3.dispatch("select", "frame");
-var kind = "data";
-var path = "";
 
-function fetch(next) {
+function fetch(path) {
   var xmlhttp = new XMLHttpRequest();
   xmlhttp.onload = function () {
     if(xmlhttp.status == 200) {
       var state = JSON.parse(xmlhttp.responseText);
-      path = next;
       graph(state, dispatch);
     }
   };
-  xmlhttp.open("GET", kind + next + "/series.json", true);
+  xmlhttp.open("GET", path + "/series.json", true);
   xmlhttp.send();
 }
 
-fetch(path);
-dispatch.on("select", function (addr) { fetch(path + "/" + addr); });
+fetch("/red");
+dispatch.on("select", function (select) { if(select != null) fetch(select); });
 dispatch.on("frame", function (path) { fetch(path); });
 |}

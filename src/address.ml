@@ -13,7 +13,7 @@ module Ord = struct
 
   type t = Int64.t
 
-  let compare = compare
+  let compare = Int64.compare
 
 end
 
