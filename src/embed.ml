@@ -46,7 +46,53 @@ var y = d3.scale.linear().range([height, 0]);
 var color1 = d3.scale.category20();
 var color2 = d3.scale.category20c();
 
+var fmt = d3.format('.3');
+
 var xAxis = d3.svg.axis().scale(x).orient("bottom");
+
+xAxis.tickFormat(function (secs) {
+  return fmt(secs) + 's';
+});
+
+var rt2 = Math.sqrt(2);
+var ln2 = Math.log(2);
+
+var byteTickValues = function(start, stop, count) {
+
+  var step0 = Math.abs(stop - start) / Math.max(0, count),
+      step1 = Math.pow(2, Math.floor(Math.log(step0) / ln2)),
+      error = step0 / step1;
+
+  if (error >= rt2) step1 *= 2;
+
+  var step = stop < start ? -step1 : step1;
+
+  return d3.range(
+    Math.ceil(start / step) * step,
+    Math.floor(stop / step) * step + step / 2, // inclusive
+    step
+  );
+};
+
+var kb = 1024
+var mb = kb * 1024
+var gb = mb * 1024
+
+var byteTickFormat = function (bytes) {
+  return fmt(bytes) + 'B';
+}
+
+var kilobyteTickFormat = function (bytes) {
+    return fmt(bytes / kb) + 'kB';
+}
+
+var megabyteTickFormat = function (bytes) {
+    return fmt(bytes / mb) + 'MB';
+}
+
+var gigabyteTickFormat = function (bytes) {
+    return fmt(bytes / gb) + 'GB';
+}
 
 var yAxis = d3.svg.axis().scale(y).orient("left");
 
@@ -111,6 +157,7 @@ function graph(input, dispatch) {
   var snapshots = input.snapshots;
   var frames = input.frames;
   var depth = input.depth;
+  var mode = input.mode;
 
   color1.domain(locations.map(function (location)
      { return location.key }));
@@ -129,10 +176,29 @@ function graph(input, dispatch) {
     };
   }));
 
-  x.domain([0, d3.max(snapshots, function(d) { return d.time; })]);
-  y.domain([0, d3.max(snapshots, function(d) {
+  var max_x = d3.max(snapshots, function(d) { return d.time; });
+  var max_y = d3.max(snapshots, function(d) {
     return d3.sum(layers, function (b) { return d.values[b.addr]; });
-  })]);
+  });
+
+  x.domain([0, max_x]);
+  y.domain([0, max_y]);
+
+  if(mode == "bytes") {
+    yAxis.tickValues(byteTickValues(0, max_y, 10));
+    if (max_y < kb) {
+      yAxis.tickFormat(byteTickFormat);
+    } else if (max_y < mb) {
+      yAxis.tickFormat(kilobyteTickFormat);
+    } else if (max_y < gb) {
+      yAxis.tickFormat(megabyteTickFormat);
+    } else {
+      yAxis.tickFormat(gigabyteTickFormat);
+    }
+  } else {
+    yAxis.tickValues(null);
+    yAxis.tickFormat(null);
+  }
 
   svg.select("#xaxis").call(xAxis);
   svg.select("#yaxis").call(yAxis);

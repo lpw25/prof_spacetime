@@ -144,20 +144,22 @@ let to_summary_list locations t =
     address, key, value)
     values
 
+let word_size = 8
+
 let to_json locations t =
   let scanned = Spacetime_lib.Stats.words_scanned t.stats in
   let scanned_profinfo =
     Spacetime_lib.Stats.words_scanned_with_profinfo t.stats
   in
   let values, other = get_values' locations t in
-  let values = Address.Assoc_list.to_json_assoc (fun words -> `Int words) values in
+  let values = Address.Assoc_list.to_json_assoc (fun words -> `Int (words * word_size)) values in
   let other =
-    if other <> 0 then ("1", `Int other)
+    if other <> 0 then ("1", `Int (other * word_size))
     else ("1", `Int 0)
   in
   let unknown =
     if t.initial then
-      ("0", `Int (scanned - scanned_profinfo))
+      ("0", `Int ((scanned - scanned_profinfo) * word_size))
     else
       ("0", `Int 0)
   in

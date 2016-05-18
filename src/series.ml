@@ -147,10 +147,12 @@ let to_json t =
   `Assoc [ "locations", locations_json t;
            "snapshots", snapshots_json t;
            "frames", frames_json t;
-           "depth", `Int t.depth; ]
+           "depth", `Int t.depth;
+           "mode", `String "bytes"; ]
 
 let to_reduced_json path t =
   `Assoc [ "locations", reduced_locations_json path t;
            "snapshots", reduced_snapshots_json t;
            "frames", frames_json t;
-           "depth", `Int t.depth;  ]
+           "depth", `Int t.depth;
+           "mode", `String "bytes"; ]
