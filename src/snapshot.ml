@@ -145,6 +145,10 @@ let to_summary_list locations t =
     values
 
 let to_json locations t =
+  let scanned = Spacetime_lib.Stats.words_scanned t.stats in
+  let scanned_profinfo =
+    Spacetime_lib.Stats.words_scanned_with_profinfo t.stats
+  in
   let values, other = get_values' locations t in
   let values = Address.Assoc_list.to_json_assoc (fun words -> `Int words) values in
   let other =
