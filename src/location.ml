@@ -2,22 +2,22 @@
 type t = {
   display: string;
   foreign: bool;
-  select: string option;
+  selectable: bool;
 }
 
 let unknown =
   let display = "Unknown" in
   let foreign = false in
-  let select = None in
-  { display; foreign; select }
+  let selectable = false in
+  { display; foreign; selectable }
 
-let other path =
+let other =
   let display = "Other" in
   let foreign = false in
-  let select = Some path in
-  { display; foreign; select }
+  let selectable = true in
+  { display; foreign; selectable }
 
-let create ~location ~select =
+let create ~location ~selectable =
   let display =
     match Spacetime_lib.Location.position location with
     | Some pos ->
@@ -33,21 +33,18 @@ let create ~location ~select =
       | None -> Int64.to_string (Spacetime_lib.Location.address location)
   in
   let foreign = Spacetime_lib.Location.foreign location in
-  { display; foreign; select }
+  { display; foreign; selectable }
 
 let merge l1 l2 =
-  match l1.select, l2.select with
-  | _, None -> l1
-  | None, _ -> l2
-  | Some _, Some _ -> l1
+  { l1 with selectable = l1.selectable || l2.selectable }
 
 let display { display } = display
 
-let select_json = function
-  | None -> `Null
-  | Some select -> `String select
+let path_json path selectable =
+  if selectable then `String (Path.to_string path)
+  else `Null
 
-let to_json { display; foreign; select } =
+let to_json path { display; foreign; selectable } =
   `Assoc [ "display", `String display;
            "foreign", `Bool foreign;
-           "select", select_json select; ]
+           "path", path_json path selectable; ]

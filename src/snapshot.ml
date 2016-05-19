@@ -9,7 +9,6 @@ type t = {
 and projection = {
   entries : Spacetime_lib.Entries.t;
   location : Spacetime_lib.Location.t;
-  path : string;
   snapshot : t Lazy.t;
   blocks : int;
   words : int;
@@ -18,6 +17,16 @@ and projection = {
 let time t = t.time
 
 let stats t = t.stats
+
+let proj_words p = p.words
+
+let word_size = 8
+
+let proj_bytes p = p.words * word_size
+
+let proj_blocks p = p.blocks
+
+let proj_allocations p = failwith "Not implemented"
 
 let nth depth l =
   let rec loop n = function
@@ -29,7 +38,7 @@ let nth depth l =
   in
   loop 0 l
 
-let rec create initial depth path time stats entries =
+let rec create initial depth time stats entries =
   let preindex =
     Spacetime_lib.Entries.fold
       (fun entry acc ->
@@ -59,11 +68,10 @@ let rec create initial depth path time stats entries =
     Address.Map.fold
       (fun addr (entries, location, words, blocks) acc ->
          let depth = depth + 1 in
-         let path = path ^ "/" ^ Address.to_string addr in
          let snapshot =
-           lazy (create false depth path time stats entries)
+           lazy (create false depth time stats entries)
          in
-         let proj = {entries; location; snapshot; words; blocks; path} in
+         let proj = {entries; location; snapshot; words; blocks} in
          Address.Map.add addr proj acc)
       preindex Address.Map.empty
   in
@@ -73,7 +81,7 @@ let initial snapshot =
   let time = Spacetime_lib.Snapshot.time snapshot in
   let stats = Spacetime_lib.Snapshot.stats snapshot in
   let entries = Spacetime_lib.Snapshot.entries snapshot in
-  create true 0 "/red" time stats entries
+  create true 0 time stats entries
 
 let project t addr =
   match Address.Map.find addr t.index with
@@ -85,11 +93,8 @@ let locations' acc snapshot =
   Address.Map.fold
     (fun addr proj acc ->
        let location = proj.location in
-       let select =
-         if Spacetime_lib.Entries.is_empty proj.entries then None
-         else Some proj.path
-       in
-       let location = Location.create ~select ~location in
+       let selectable = not (Spacetime_lib.Entries.is_empty proj.entries) in
+       let location = Location.create ~selectable ~location in
        let location =
          match Address.Map.find addr acc with
          | exception Not_found -> location
@@ -118,7 +123,7 @@ let blocks t addr =
   | exception Not_found -> 0
   | { blocks } -> blocks
 
-let get_values' ~get_value locations t =
+let get_values ~get_value locations t =
   let values = Address.Map.map (fun _ -> 0) locations in
   let values, other =
     Address.Map.fold
@@ -138,10 +143,10 @@ let to_summary_list ?(mode = `Words) locations t =
   let values, _ =
     let get_value =
       match mode with
-      | `Words -> fun proj -> proj.words
-      | `Blocks -> fun proj -> proj.blocks
+      | `Words -> proj_words
+      | `Blocks -> proj_blocks
     in
-    get_values' ~get_value locations t
+    get_values ~get_value locations t
   in
   List.map (fun (address, value) ->
     let key =
@@ -152,24 +157,31 @@ let to_summary_list ?(mode = `Words) locations t =
     address, key, value)
     values
 
-let word_size = 8
-
-let to_json locations t =
-  let scanned = Spacetime_lib.Stats.words_scanned t.stats in
-  let scanned_profinfo =
-    Spacetime_lib.Stats.words_scanned_with_profinfo t.stats
-  in
-  let values, other = get_values' ~get_value:(fun proj -> proj.words) locations t in
-  let values = Address.Assoc_list.to_json_assoc (fun words -> `Int (words * word_size)) values in
-  let other =
-    if other <> 0 then ("1", `Int (other * word_size))
-    else ("1", `Int 0)
-  in
+let to_json mode locations t =
   let unknown =
     if t.initial then
-      ("0", `Int ((scanned - scanned_profinfo) * word_size))
+      match mode with
+      | Path.Bytes ->
+        let scanned = Spacetime_lib.Stats.words_scanned t.stats in
+        let scanned_profinfo =
+          Spacetime_lib.Stats.words_scanned_with_profinfo t.stats
+        in
+        ("0", `Int ((scanned - scanned_profinfo) * word_size))
+      | Path.Blocks | Path.Allocations ->
+        ("0", `Int 0)
     else
       ("0", `Int 0)
   in
+  let get_value =
+    match mode with
+    | Path.Bytes -> proj_bytes
+    | Path.Blocks -> proj_blocks
+    | Path.Allocations -> proj_allocations
+  in
+  let values, other = get_values ~get_value locations t in
+  let values =
+    Address.Assoc_list.to_json_assoc (fun value -> `Int value) values
+  in
+  let other = ("1", `Int other) in
   `Assoc ["time", `Float t.time;
           "values", `Assoc (values @ [other; unknown])]

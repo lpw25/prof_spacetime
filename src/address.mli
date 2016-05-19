@@ -22,6 +22,6 @@ end
 module Map : sig
   include Map.S with type key = t
   val to_json_assoc :
-    ('a -> Yojson.Basic.json) -> 'a t -> (string * Yojson.Basic.json) list
+    (key -> 'a -> Yojson.Basic.json) -> 'a t -> (string * Yojson.Basic.json) list
   val to_assoc_list : 'a t -> 'a Assoc_list.t
 end

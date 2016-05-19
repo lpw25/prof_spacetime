@@ -18,6 +18,29 @@ body {
 .layer text {
   text-anchor: end;
 }
+
+ul.mode {
+  list-style-type: none;
+  margin-top: 40px;
+  height: 20px;
+  text-align: center;
+}
+
+li.mode {
+  display: inline;
+  margin: 40px;
+  font: 16px sans-serif;
+  color: blue;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+li.mode-sel {
+  display: inline;
+  margin: 40px;
+  font: 16px sans-serif;
+}
+
 </style>
 <script type="text/javascript" src="http://d3js.org/d3.v3.min.js" charset="utf-8">
 </script>
@@ -29,6 +52,13 @@ body {
 |}
 
 let js = {|
+var mode_widget_vert = 60;
+
+var mode_widget =
+  d3.select("body")
+    .append("ul")
+    .attr("class", "mode");
+
 var margin = {top: 100, right: 200, bottom: 100, left: 200};
 
 var width = 1280 - margin.left - margin.right;
@@ -36,8 +66,6 @@ var width = 1280 - margin.left - margin.right;
 var height = 640 - margin.top - margin.bottom;
 
 var popup_padding = 4;
-
-var widget_width = 640;
 
 var x = d3.scale.linear().range([0, width]);
 
@@ -119,8 +147,8 @@ var body =
       popup.transition().duration(10).style("opacity", 0);
     })
     .on("mousemove", function(d) {
-      var x = d3.event.pageX - margin.left;
-      var y = d3.event.pageY - margin.top;
+      var x = d3.event.pageX - margin.left + 5;
+      var y = d3.event.pageY - margin.top - mode_widget_vert + 5;
       popup.attr("transform", "translate(" + x + "," + y + ")");
     });
 
@@ -149,15 +177,30 @@ svg.append("g")
   .attr("class", "axis")
   .attr("id","yaxis");
 
-var widget = d3.select("body").append("ul");
+var frame_widget = d3.select("body").append("ul");
 
 function graph(input, dispatch) {
 
   var locations = d3.entries(input.locations);
   var snapshots = input.snapshots;
-  var frames = input.frames;
-  var depth = input.depth;
-  var mode = input.mode;
+
+  var modes =
+    mode_widget.selectAll("li")
+      .data(input.modes);
+
+  modes.enter().append("li");
+
+  modes
+    .text(function (d) { return d.display })
+    .attr("class", function (d) {
+      if (d.selected) { return "mode-sel" }
+      else { return "mode" }
+    })
+    .on("click", function (d) {
+      if (!d.selected) { dispatch.select(d.path); }
+    });
+
+  modes.exit().remove();
 
   color1.domain(locations.map(function (location)
      { return location.key }));
@@ -169,7 +212,7 @@ function graph(input, dispatch) {
       addr: location.key,
       display: location.value.display,
       foreign: location.value.foreign,
-      select: location.value.select,
+      path: location.value.path,
       values: snapshots.map(function(d) {
         return {time: d.time, y: d.values[location.key]};
       })
@@ -184,7 +227,7 @@ function graph(input, dispatch) {
   x.domain([0, max_x]);
   y.domain([0, max_y]);
 
-  if(mode == "bytes") {
+  if(input.bytes) {
     yAxis.tickValues(byteTickValues(0, max_y, 10));
     if (max_y < kb) {
       yAxis.tickFormat(byteTickFormat);
@@ -198,6 +241,7 @@ function graph(input, dispatch) {
   } else {
     yAxis.tickValues(null);
     yAxis.tickFormat(null);
+    yAxis.ticks(10, ",s");
   }
 
   svg.select("#xaxis").call(xAxis);
@@ -217,8 +261,8 @@ function graph(input, dispatch) {
     .attr("d", function(d) { return area(d.values); })
     .on("mouseenter", function(d) {
       d3.select(this).attr("stroke", "#000000");
-      var x = d3.event.pageX - margin.left;
-      var y = d3.event.pageY - margin.top;
+      var x = d3.event.pageX - margin.left + 5;
+      var y = d3.event.pageY - margin.top - mode_widget_vert + 5;
       popup.attr("transform", "translate(" + x + "," + y + ")");
       var text = popup.select("text");
       text.text(d.display);
@@ -237,9 +281,9 @@ function graph(input, dispatch) {
     .on("mouseleave", function(d) {
       d3.select(this).attr("stroke", "none");
     })
-    .on("click", function (d) { dispatch.select(d.select); })
+    .on("click", function (d) { dispatch.select(d.path); })
     .attr("fill", function(d) {
-       if(depth % 2 == 0) {
+       if(input.depth % 2 == 0) {
          return color1(d.addr);
        } else {
          return color2(d.addr);
@@ -249,8 +293,8 @@ function graph(input, dispatch) {
   layer.exit().remove();
 
   var frame =
-    widget.selectAll("li")
-      .data(frames);
+    frame_widget.selectAll("li")
+      .data(input.frames);
 
   frame.enter().append("li")
     .style("cursor","pointer")
@@ -274,11 +318,11 @@ function fetch(path) {
       graph(state, dispatch);
     }
   };
-  xmlhttp.open("GET", path + "/series.json", true);
+  xmlhttp.open("GET", path, true);
   xmlhttp.send();
 }
 
-fetch("/red");
-dispatch.on("select", function (select) { if(select != null) fetch(select); });
+fetch("initial.json");
+dispatch.on("select", function (path) { if(path != null) fetch(path); });
 dispatch.on("frame", function (path) { fetch(path); });
 |}

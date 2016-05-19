@@ -11,8 +11,6 @@ val locations : t -> Location.t Address.Map.t
 
 val addresses : t -> Address.Set.t
 
-val to_json : t -> Yojson.Basic.json
-
 val snapshots : t -> Snapshot.t list
 
-val to_reduced_json : string -> t -> Yojson.Basic.json
+val to_json : Path.t -> t -> Yojson.Basic.json

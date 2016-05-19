@@ -2,37 +2,6 @@ open Lwt
 open Cohttp
 module Server = Cohttp_lwt_unix.Server
 
-let split_path path from until =
-  let rec loop path segments prev n until =
-    if prev >= until then begin
-      List.rev segments
-    end else if n >= until then begin
-      let final = String.sub path prev (until - prev) in
-      List.rev (final :: segments)
-    end else if path.[n] = '/' then begin
-      let segments =
-        if prev >= n then segments
-        else (String.sub path prev (n - prev)) :: segments
-      in
-      loop path segments (n + 1) (n + 1) until
-    end else begin
-      loop path segments prev (n + 1) until
-    end
-  in
-  loop path [] from from until
-
-let reduced_d = "/red"
-let all_d = "/all"
-
-let prefixd_len =
-  let reduced_len = String.length reduced_d in
-  let add_len = String.length all_d in
-  assert (reduced_len = add_len);
-  reduced_len
-
-let jsonf = "series.json"
-let jsonf_len = String.length jsonf
-
 let serve ~address ~port series =
   let header typ =
     let h = Header.init () in
@@ -57,50 +26,22 @@ let serve ~address ~port series =
       let status = `OK in
       let body = Embed.js in
       Server.respond_string ~headers ~status ~body ()
-    | _ ->
-      let len = String.length path in
-      if len >= (prefixd_len + jsonf_len) then begin
-        let head = String.sub path 0 prefixd_len in
-        let tail = String.sub path (len - jsonf_len) jsonf_len in
-        let serve, reduced =
-          if tail = jsonf then begin
-            if head = reduced_d then true, true
-            else if head = all_d then true, false
-            else false, false
-          end else false, false
-        in
-        if serve then begin
-          try
-            let segments = split_path path prefixd_len (len - jsonf_len) in
-            let addrs =
-              List.map
-                (fun str -> Address.of_int64 (Int64.of_string str)) segments
-            in
-            let series =
-              List.fold_left
-                (fun acc addr -> Series.project acc addr) series addrs
-            in
-            let headers = header_json in
-            let status = `OK in
-            let json =
-              if reduced then begin
-                let path_body =
-                  String.sub path prefixd_len (len - (prefixd_len + jsonf_len))
-                in
-                let other_path = all_d ^ path_body in
-                Series.to_reduced_json other_path series
-              end else begin
-                Series.to_json series
-              end
-            in
-            let body = Yojson.Basic.pretty_to_string ~std:true json in
-            Server.respond_string ~headers ~status ~body ()
-          with Failure _ -> Server.respond_not_found ~uri ()
-        end else begin
+    | _ -> begin
+        match Path.of_string path with
+        | Some path ->
+          Printf.eprintf "%s\n%!" (Path.to_string path);
+          let addrs = Path.addresses path in
+          let series =
+            List.fold_right
+              (fun addr acc -> Series.project acc addr) addrs series
+          in
+          let headers = header_json in
+          let status = `OK in
+          let json = Series.to_json path series in
+          let body = Yojson.Basic.pretty_to_string ~std:true json in
+          Server.respond_string ~headers ~status ~body ()
+        | None ->
           Server.respond_not_found ~uri ()
-        end
-      end else begin
-        Server.respond_not_found ~uri ()
       end
   in
   let ctx = Conduit_lwt_unix.init ~src:address () in

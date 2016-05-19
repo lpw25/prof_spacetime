@@ -39,7 +39,7 @@ module Map = struct
   let to_json_assoc value_to_json t =
     fold
       (fun key value acc ->
-         (to_string key, value_to_json value) :: acc)
+         (to_string key, value_to_json key value) :: acc)
       t []
 
   let to_assoc_list t =

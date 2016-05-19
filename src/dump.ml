@@ -9,16 +9,19 @@ let write_string dir file str =
   output_string oc str;
   close_out oc
 
-let rec dump_projections max_depth depth dir series =
+let rec dump_projections max_depth depth dir series path =
   if depth <= max_depth then begin
     ensure_dir dir;
-    let json = Yojson.Basic.pretty_to_string ~std:true (Series.to_json series) in
+    let json =
+      Yojson.Basic.pretty_to_string ~std:true (Series.to_json path series)
+    in
     write_string dir "series.json" json;
     let projections = Series.projections series in
     Address.Map.iter
       (fun addr series ->
          let dir = dir ^ "/" ^ (Address.to_string addr) in
-         dump_projections max_depth (depth + 1) dir series)
+         let path = Path.project path addr in
+         dump_projections max_depth (depth + 1) dir series path)
       projections
   end
 
@@ -26,4 +29,4 @@ let dump ~dir series =
   ensure_dir dir;
   write_string dir "index.html" Embed.html;
   write_string dir "graph.js" Embed.js;
-  dump_projections 10 0 (dir ^ "/data") series
+  dump_projections 10 0 (dir ^ "/data") series Path.initial
