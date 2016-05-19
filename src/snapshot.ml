@@ -34,7 +34,7 @@ let rec create initial depth path time stats entries =
     Spacetime_lib.Entries.fold
       (fun entry acc ->
          let words = Spacetime_lib.Entry.words entry in
-         let blocks = Spacetime_lib.Entry.words entry in
+         let blocks = Spacetime_lib.Entry.blocks entry in
          let backtrace = Spacetime_lib.Entry.backtrace entry in
          match nth depth backtrace with
          | None -> acc
@@ -118,23 +118,31 @@ let blocks t addr =
   | exception Not_found -> 0
   | { blocks } -> blocks
 
-let get_values' locations t =
-  let words = Address.Map.map (fun _ -> 0) locations in
-  let words, other =
+let get_values' ~get_value locations t =
+  let values = Address.Map.map (fun _ -> 0) locations in
+  let values, other =
     Address.Map.fold
       (fun addr proj (map, other) ->
+         let value = get_value proj in
          if Address.Map.mem addr locations then
-           Address.Map.add addr proj.words map, other
+           Address.Map.add addr value map, other
          else
-           map, other + proj.words)
-      t.index (words, 0)
+           map, other + value)
+      t.index (values, 0)
   in
-  let values = Address.Map.to_assoc_list words in
+  let values = Address.Map.to_assoc_list values in
   let values = Address.Assoc_list.sort_val (fun x y -> compare y x) values in
   values, other
 
-let to_summary_list locations t =
-  let values, _ = get_values' locations t in
+let to_summary_list ?(mode = `Words) locations t =
+  let values, _ =
+    let get_value =
+      match mode with
+      | `Words -> fun proj -> proj.words
+      | `Blocks -> fun proj -> proj.blocks
+    in
+    get_values' ~get_value locations t
+  in
   List.map (fun (address, value) ->
     let key =
       match Address.Map.find address locations with
@@ -151,7 +159,7 @@ let to_json locations t =
   let scanned_profinfo =
     Spacetime_lib.Stats.words_scanned_with_profinfo t.stats
   in
-  let values, other = get_values' locations t in
+  let values, other = get_values' ~get_value:(fun proj -> proj.words) locations t in
   let values = Address.Assoc_list.to_json_assoc (fun words -> `Int (words * word_size)) values in
   let other =
     if other <> 0 then ("1", `Int (other * word_size))

@@ -24,4 +24,4 @@ val blocks : t -> Address.t -> int
 
 val to_json : Location.t Address.Map.t -> t -> Yojson.Basic.json
 
-val to_summary_list : Location.t Address.Map.t -> t -> (Address.t * string * int) list
+val to_summary_list : ?mode:[ `Words | `Blocks ] -> Location.t Address.Map.t -> t -> (Address.t * string * int) list

@@ -8,11 +8,12 @@ module View = struct
     ; projects : (Address.t * string) list
     ; summary : (Address.t * string * int) list
     ; total : int
+    ; mode : [ `Words | `Blocks ]
     ; mutable row_cursor : int
     ; mutable top_row : int
     }
 
-  let create series ?address ~index projects =
+  let create series ~mode ?address ~index projects =
     let snapshots = Series.snapshots series in
     let snapshot = List.nth snapshots index in
     let snapshot =
@@ -22,7 +23,7 @@ module View = struct
         (List.rev projects)
     in
     let locations = Snapshot.locations snapshot in
-    let summary = Snapshot.to_summary_list locations snapshot in
+    let summary = Snapshot.to_summary_list ~mode locations snapshot in
     let total =
       List.fold_left (fun sum (_, _, value) -> sum + value) 0 summary
     in
@@ -41,6 +42,7 @@ module View = struct
     ; projects
     ; summary
     ; total
+    ; mode
     ; row_cursor
     ; top_row = 1 (* This will get readjusted on drawing *)
     }
@@ -83,7 +85,7 @@ type state =
   ; mutable view : View.t
   }
 
-let update_view ?address ?projects state =
+let update_view ?mode ?address ?projects state =
   let address =
     match address with
     | Some address -> address
@@ -94,10 +96,15 @@ let update_view ?address ?projects state =
   let projects =
     match projects with
     | Some projects -> projects
-    | None         -> state.view.View.projects
+    | None          -> state.view.View.projects
+  in
+  let mode =
+    match mode with
+    | Some mode -> mode
+    | None      -> state.view.View.mode
   in
   let view =
-    View.create ~address state.series ~index:state.snapshot_index projects
+    View.create ~mode ~address state.series ~index:state.snapshot_index projects
   in
   state.view <- view
 
@@ -106,6 +113,15 @@ let rec event_loop ui state =
   let open LTerm_key in
   LTerm_ui.wait ui >>= function
   | LTerm_event.Resize _ ->
+    LTerm_ui.draw ui;
+    event_loop ui state
+  | LTerm_event.Key { code = Tab } ->
+    let mode =
+      match state.view.View.mode with
+      | `Words -> `Blocks
+      | `Blocks -> `Words
+    in
+    update_view ~mode state;
     LTerm_ui.draw ui;
     event_loop ui state
   | LTerm_event.Key { code = Left } ->
@@ -167,11 +183,18 @@ let draw ui matrix t =
   LTerm_draw.draw_hline ctx 0 0 size.LTerm_geom.cols ~style:header_bar LTerm_draw.Blank;
   let total = view.View.total in
   LTerm_draw.draw_styled ctx 0 0 ~style:header_bar
-    (eval [ S(Printf.sprintf " [%s] Time %f, Total %d words"
+    (eval [ S(Printf.sprintf " [%s] Time %f, Total %d %s"
                 (projects_to_string view.View.projects)
-                (Snapshot.time view.View.snapshot) total) ]);
+                (Snapshot.time view.View.snapshot) total
+                (match view.View.mode with | `Words -> "words" | `Blocks -> "blocks"))
+          ]);
   let rows = size.LTerm_geom.rows in
   View.align_view view ~visible_rows:rows;
+  let b_or_w =
+    match view.View.mode with
+    | `Words -> "w"
+    | `Blocks -> "b"
+  in
   let rec loop row = function
     | (_address, key, value) :: tl ->
       if row > rows
@@ -193,7 +216,9 @@ let draw ui matrix t =
                 ; B_fg color
                 ; S (Printf.sprintf " %5.2f%% " percentage)
                 ; E_fg
-                ; S (Printf.sprintf " %10dw  " value)
+                ; S (Printf.sprintf " %10d" value)
+                ; S b_or_w
+                ; S "  "
                 ; S key
                 ; S (String.init (cols - 23 - (String.length key)) (fun _ -> ' '))
                 ; E_reverse
@@ -217,7 +242,7 @@ let main state =
   Lwt.finalize (fun () -> event_loop ui state) (fun () -> LTerm_ui.quit ui)
 
 let show series =
-  let view = View.create series ~index:0 [] in
+  let view = View.create ~mode:`Words series ~index:0 [] in
   let state = { series; snapshot_index = 0; view } in
   Lwt_main.run (main state)
 
