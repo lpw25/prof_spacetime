@@ -27,7 +27,7 @@ let reduced_locations mode snapshots locations =
                   match mode with
                   | Path.Bytes -> Snapshot.words snapshot addr
                   | Path.Blocks -> Snapshot.blocks snapshot addr
-                  | Path.Allocations -> failwith "Not implemented"
+                  | Path.Allocations -> Snapshot.allocations snapshot addr
                 in
                 if count > acc then count
                 else acc)

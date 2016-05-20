@@ -12,6 +12,7 @@ and projection = {
   snapshot : t Lazy.t;
   blocks : int;
   words : int;
+  allocations : int;
 }
 
 let time t = t.time
@@ -26,7 +27,7 @@ let proj_bytes p = p.words * word_size
 
 let proj_blocks p = p.blocks
 
-let proj_allocations p = failwith "Not implemented"
+let proj_allocations p = p.allocations
 
 let nth depth l =
   let rec loop n = function
@@ -44,15 +45,16 @@ let rec create initial depth time stats entries =
       (fun entry acc ->
          let words = Spacetime_lib.Entry.words entry in
          let blocks = Spacetime_lib.Entry.blocks entry in
+         let allocations = Spacetime_lib.Entry.allocations entry in
          let backtrace = Spacetime_lib.Entry.backtrace entry in
          match nth depth backtrace with
          | None -> acc
          | Some (loc, bottom) ->
            let addr = Address.of_int64 (Spacetime_lib.Location.address loc) in
-           let entries_acc, loc_acc, words_acc, blocks_acc =
+           let entries_acc, loc_acc, words_acc, blocks_acc, allocations_acc =
              try
                Address.Map.find addr acc
-             with Not_found -> Spacetime_lib.Entries.empty, loc, 0, 0
+             with Not_found -> Spacetime_lib.Entries.empty, loc, 0, 0, 0
            in
            let entries_acc =
              if bottom then entries_acc
@@ -60,18 +62,21 @@ let rec create initial depth time stats entries =
            in
            let words_acc = words_acc + words in
            let blocks_acc = blocks_acc + blocks in
+           let allocations_acc = allocations_acc + allocations in
            Address.Map.add addr
-             (entries_acc, loc_acc, words_acc, blocks_acc) acc)
+             (entries_acc, loc_acc, words_acc, blocks_acc, allocations_acc) acc)
       entries Address.Map.empty
   in
   let index =
     Address.Map.fold
-      (fun addr (entries, location, words, blocks) acc ->
+      (fun addr (entries, location, words, blocks, allocations) acc ->
          let depth = depth + 1 in
          let snapshot =
            lazy (create false depth time stats entries)
          in
-         let proj = {entries; location; snapshot; words; blocks} in
+         let proj =
+           { entries; location; snapshot; words; blocks; allocations }
+         in
          Address.Map.add addr proj acc)
       preindex Address.Map.empty
   in
@@ -123,6 +128,11 @@ let blocks t addr =
   | exception Not_found -> 0
   | { blocks } -> blocks
 
+let allocations t addr =
+  match Address.Map.find addr t.index with
+  | exception Not_found -> 0
+  | { allocations } -> allocations
+
 let get_values ~get_value locations t =
   let values = Address.Map.map (fun _ -> 0) locations in
   let values, other =
@@ -145,6 +155,7 @@ let to_summary_list ?(mode = `Words) locations t =
       match mode with
       | `Words -> proj_words
       | `Blocks -> proj_blocks
+      | `Allocations -> proj_allocations
     in
     get_values ~get_value locations t
   in

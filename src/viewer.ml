@@ -8,7 +8,7 @@ module View = struct
     ; projects : (Address.t * string) list
     ; summary : (Address.t * string * int) list
     ; total : int
-    ; mode : [ `Words | `Blocks ]
+    ; mode : [ `Words | `Blocks | `Allocations ]
     ; mutable row_cursor : int
     ; mutable top_row : int
     }
@@ -119,7 +119,8 @@ let rec event_loop ui state =
     let mode =
       match state.view.View.mode with
       | `Words -> `Blocks
-      | `Blocks -> `Words
+      | `Blocks -> `Allocations
+      | `Allocations -> `Words
     in
     update_view ~mode state;
     LTerm_ui.draw ui;
@@ -182,17 +183,23 @@ let draw ui matrix t =
   in
   LTerm_draw.draw_hline ctx 0 0 size.LTerm_geom.cols ~style:header_bar LTerm_draw.Blank;
   let total = view.View.total in
+  let desc =
+    match view.View.mode with
+    | `Words -> "live words"
+    | `Blocks -> "live blocks"
+    | `Allocations -> "allocated words"
+  in
   LTerm_draw.draw_styled ctx 0 0 ~style:header_bar
     (eval [ S(Printf.sprintf " [%s] Time %f, Total %d %s"
                 (projects_to_string view.View.projects)
                 (Snapshot.time view.View.snapshot) total
-                (match view.View.mode with | `Words -> "words" | `Blocks -> "blocks"))
+                desc)
           ]);
   let rows = size.LTerm_geom.rows in
   View.align_view view ~visible_rows:rows;
   let b_or_w =
     match view.View.mode with
-    | `Words -> "w"
+    | `Words | `Allocations -> "w"
     | `Blocks -> "b"
   in
   let rec loop row = function

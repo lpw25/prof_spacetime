@@ -29,7 +29,6 @@ let serve ~address ~port series =
     | _ -> begin
         match Path.of_string path with
         | Some path ->
-          Printf.eprintf "%s\n%!" (Path.to_string path);
           let addrs = Path.addresses path in
           let series =
             List.fold_right
