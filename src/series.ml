@@ -7,13 +7,14 @@ type t = {
   reduced_blocks: Location.t Address.Map.t Lazy.t;
   reduced_allocations: Location.t Address.Map.t Lazy.t;
   depth: int;
+  resolve_foreign : (Int64.t -> (string * int) option);
 }
 
 let snapshots t = t.snapshots
 
-let locations_of_snapshots snapshots =
+let locations_of_snapshots snapshots ~resolve_foreign =
   List.fold_left
-    Snapshot.locations'
+    (fun snapshot -> Snapshot.locations' snapshot ~resolve_foreign)
     Address.Map.empty snapshots
 
 let reduced_locations mode snapshots locations =
@@ -68,10 +69,10 @@ let reduced_locations mode snapshots locations =
          | loc -> Address.Map.add addr loc acc)
     Address.Map.empty addr_array
 
-let initial series =
+let initial series ~resolve_foreign =
   let snapshots = List.map Snapshot.initial series in
   let frames = [] in
-  let locations = lazy (locations_of_snapshots snapshots) in
+  let locations = lazy (locations_of_snapshots snapshots ~resolve_foreign) in
   let reduced_bytes =
     lazy (reduced_locations Path.Bytes snapshots (Lazy.force locations))
   in
@@ -83,9 +84,9 @@ let initial series =
   in
   let depth = 0 in
   { snapshots; frames; locations; reduced_bytes;
-    reduced_blocks; reduced_allocations; depth }
+    reduced_blocks; reduced_allocations; depth; resolve_foreign; }
 
-let project { snapshots; frames; locations; depth } addr =
+let project { snapshots; frames; locations; depth; resolve_foreign } addr =
   let parent_locations = Lazy.force locations in
   let frames =
     match Address.Map.find addr parent_locations with
@@ -95,7 +96,7 @@ let project { snapshots; frames; locations; depth } addr =
   let snapshots =
     List.map (fun snapshot -> Snapshot.project snapshot addr) snapshots
   in
-  let locations = lazy (locations_of_snapshots snapshots) in
+  let locations = lazy (locations_of_snapshots snapshots ~resolve_foreign) in
   let reduced_bytes =
     lazy (reduced_locations Path.Bytes snapshots (Lazy.force locations))
   in
@@ -107,7 +108,8 @@ let project { snapshots; frames; locations; depth } addr =
   in
   let depth = depth + 1 in
   { snapshots; frames; locations; reduced_bytes;
-    reduced_blocks; reduced_allocations; depth }
+    reduced_blocks; reduced_allocations; depth;
+    resolve_foreign; }
 
 let locations { locations } = Lazy.force locations
 

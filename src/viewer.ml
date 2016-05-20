@@ -13,7 +13,7 @@ module View = struct
     ; mutable top_row : int
     }
 
-  let create series ~mode ?address ~index projects =
+  let create series ~resolve_foreign ~mode ?address ~index projects =
     let snapshots = Series.snapshots series in
     let snapshot = List.nth snapshots index in
     let snapshot =
@@ -22,7 +22,7 @@ module View = struct
         snapshot
         (List.rev projects)
     in
-    let locations = Snapshot.locations snapshot in
+    let locations = Snapshot.locations snapshot ~resolve_foreign in
     let summary = Snapshot.to_summary_list ~mode locations snapshot in
     let total =
       List.fold_left (fun sum (_, _, value) -> sum + value) 0 summary
@@ -85,7 +85,7 @@ type state =
   ; mutable view : View.t
   }
 
-let update_view ?mode ?address ?projects state =
+let update_view ?mode ?address ?projects ~resolve_foreign state =
   let address =
     match address with
     | Some address -> address
@@ -104,13 +104,15 @@ let update_view ?mode ?address ?projects state =
     | None      -> state.view.View.mode
   in
   let view =
-    View.create ~mode ~address state.series ~index:state.snapshot_index projects
+    View.create ~resolve_foreign ~mode ~address state.series
+      ~index:state.snapshot_index projects
   in
   state.view <- view
 
-let rec event_loop ui state =
+let rec event_loop ~resolve_foreign ui state =
   let visible_rows = (LTerm_ui.size ui).LTerm_geom.rows in
   let open LTerm_key in
+  let event_loop = event_loop ~resolve_foreign in
   LTerm_ui.wait ui >>= function
   | LTerm_event.Resize _ ->
     LTerm_ui.draw ui;
@@ -122,14 +124,14 @@ let rec event_loop ui state =
       | `Blocks -> `Allocations
       | `Allocations -> `Words
     in
-    update_view ~mode state;
+    update_view ~mode ~resolve_foreign state;
     LTerm_ui.draw ui;
     event_loop ui state
   | LTerm_event.Key { code = Left } ->
     if state.snapshot_index > 0
     then begin
       state.snapshot_index <- state.snapshot_index - 1;
-      update_view state;
+      update_view ~resolve_foreign state;
       LTerm_ui.draw ui
     end;
     event_loop ui state
@@ -137,7 +139,7 @@ let rec event_loop ui state =
     if state.snapshot_index < List.length (Series.snapshots state.series) - 1
     then begin
       state.snapshot_index <- state.snapshot_index + 1;
-      update_view state;
+      update_view ~resolve_foreign state;
       LTerm_ui.draw ui
     end;
     event_loop ui state
@@ -159,13 +161,13 @@ let rec event_loop ui state =
       |> fun (address, s, _) -> address, s
     in
     let projects = project :: state.view.View.projects in
-    update_view ~projects state;
+    update_view ~projects ~resolve_foreign state;
     LTerm_ui.draw ui;
     event_loop ui state
   | LTerm_event.Key { code = Backspace } ->
     begin match state.view.View.projects with
     | (address, _) :: projects ->
-      update_view ~address ~projects state;
+      update_view ~address ~projects ~resolve_foreign state;
       LTerm_ui.draw ui
     | [] -> ()
     end;
@@ -241,15 +243,15 @@ let draw ui matrix t =
   in
   loop 1 (jump_to_row view.View.top_row view.View.summary)
 
-let main state =
+let main ~resolve_foreign state =
   Lazy.force LTerm.stdout
   >>= fun term ->
   LTerm_ui.create term (fun matrix size -> draw matrix size state)
   >>= fun ui ->
-  Lwt.finalize (fun () -> event_loop ui state) (fun () -> LTerm_ui.quit ui)
+  Lwt.finalize (fun () -> event_loop ~resolve_foreign ui state)
+    (fun () -> LTerm_ui.quit ui)
 
-let show series =
-  let view = View.create ~mode:`Words series ~index:0 [] in
+let show ~resolve_foreign series =
+  let view = View.create ~resolve_foreign ~mode:`Words series ~index:0 [] in
   let state = { series; snapshot_index = 0; view } in
-  Lwt_main.run (main state)
-
+  Lwt_main.run (main ~resolve_foreign state)
