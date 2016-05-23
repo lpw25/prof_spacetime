@@ -5,4 +5,5 @@ true:   package(cohttp.lwt)
 true:   package(cmdliner)
 true:   package(lwt)
 true:   package(lambda-term)
+true:   package(spacetime_lib)
 true:   bin_annot

@@ -1,7 +1,7 @@
 
 CP=cp
 
-OCAMLBUILD_FLAGS=-use-ocamlfind -I src -I bin -lflags spacetime_lib.cmxa
+OCAMLBUILD_FLAGS=-use-ocamlfind -I src -I bin
 OCAMLBUILD=ocamlbuild $(OCAMLBUILD_FLAGS)
 
 all: prof-alloc

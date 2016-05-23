@@ -12,6 +12,7 @@ depends: [
   "yojson"
   "lwt"
   "lambda-term"
+  "spacetime_lib"
 ]
 build: [
   [make]
