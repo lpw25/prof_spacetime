@@ -5,7 +5,7 @@ type command =
   | View of { elf_executable: string option; }
 
 let main command profile =
-  Printf.printf "Processsing series...%!";
+  Printf.printf "Processing series...%!";
   let executable =
     match command with
     | Serve { elf_executable; _ }
