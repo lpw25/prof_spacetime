@@ -94,12 +94,12 @@ let project t addr =
     { t with index = Address.Map.empty; }
   | { snapshot = lazy snapshot } -> snapshot
 
-let locations' acc snapshot ~resolve_foreign =
+let locations' acc snapshot =
   Address.Map.fold
     (fun addr proj acc ->
        let location = proj.location in
        let selectable = not (Spacetime_lib.Entries.is_empty proj.entries) in
-       let location = Location.create ~selectable ~location ~resolve_foreign in
+       let location = Location.create ~selectable ~location in
        let location =
          match Address.Map.find addr acc with
          | exception Not_found -> location
@@ -108,8 +108,7 @@ let locations' acc snapshot ~resolve_foreign =
        Address.Map.add addr location acc)
     snapshot.index acc
 
-let locations snapshot ~resolve_foreign =
-  locations' Address.Map.empty snapshot ~resolve_foreign
+let locations snapshot = locations' Address.Map.empty snapshot
 
 let addresses' acc snapshot =
   Address.Map.fold

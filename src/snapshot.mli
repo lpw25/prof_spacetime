@@ -10,16 +10,9 @@ val initial : Spacetime_lib.Snapshot.t -> t
 
 val project : t -> Address.t -> t
 
-val locations
-   : t
-  -> resolve_foreign:(Int64.t -> (string * int) option)
-  -> Location.t Address.Map.t
+val locations : t -> Location.t Address.Map.t
 
-val locations'
-   : Location.t Address.Map.t
-  -> t
-  -> resolve_foreign:(Int64.t -> (string * int) option)
-  -> Location.t Address.Map.t
+val locations' : Location.t Address.Map.t -> t -> Location.t Address.Map.t
 
 val addresses : t -> Address.Set.t
 

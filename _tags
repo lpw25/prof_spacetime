@@ -6,4 +6,3 @@ true:   package(cmdliner)
 true:   package(lwt)
 true:   package(lambda-term)
 true:   bin_annot
-true:   package(owee)

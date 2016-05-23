@@ -1,10 +1,7 @@
 
 type t
 
-val initial
-   : Spacetime_lib.Series.t
-  -> resolve_foreign:(Int64.t -> (string * int) option)
-  -> t
+val initial : Spacetime_lib.Series.t -> t
 
 val project : t -> Address.t -> t
 

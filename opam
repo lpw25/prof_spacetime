@@ -12,7 +12,6 @@ depends: [
   "yojson"
   "lwt"
   "lambda-term"
-  "owee"
 ]
 build: [
   [make]

@@ -1,34 +1,18 @@
 
 type command =
-  | Serve of { address: string; port: int; elf_executable : string option; }
+  | Serve of { address: string; port: int }
   | Dump of { dir: string }
-  | View of { elf_executable : string option; }
+  | View
 
 let main command profile =
-  Printf.printf "Examining ELF executable...%!";
-  let resolve_foreign ~elf_executable =
-    match elf_executable with
-    | None -> fun _addr -> None
-    | Some elf_executable ->
-      let elf = Elf_locations.create ~elf_executable in
-      fun address -> Elf_locations.resolve elf ~program_counter:address
-  in
   Printf.printf "Processsing series...%!";
   let data = Spacetime_lib.Series.create profile in
   Printf.printf "done\n%!";
+  let series = Series.initial data in
   match command with
-  | Serve { address; port; elf_executable } ->
-    let resolve_foreign = resolve_foreign ~elf_executable in
-    let series = Series.initial data ~resolve_foreign in
-    Serve.serve ~address ~port series
-  | Dump { dir } ->
-    let resolve_foreign = resolve_foreign ~elf_executable:None in
-    let series = Series.initial data ~resolve_foreign in
-    Dump.dump ~dir series
-  | View { elf_executable } ->
-    let resolve_foreign = resolve_foreign ~elf_executable in
-    let series = Series.initial data ~resolve_foreign in
-    Viewer.show series ~resolve_foreign
+  | Serve { address; port } -> Serve.serve ~address ~port series
+  | Dump { dir } -> Dump.dump ~dir series
+  | View -> Viewer.show series
 
 open Cmdliner
 
@@ -53,17 +37,8 @@ let port =
   let doc = "Use $(docv) as port" in
   Arg.(value & opt int default_port & info ["port"] ~docv:"PORT" ~doc)
 
-let elf_executable =
-  let doc = "Specify the ELF executable that was profiled" in
-  Arg.(value & opt string "" & info ["elf-executable"] ~docv:"PATH" ~doc)
-
 let serve_arg =
-  Term.(pure (fun address port elf_executable ->
-    (* CR mshinwell: fix this to use an option type *)
-    let elf_executable =
-      if elf_executable = "" then None else Some elf_executable
-    in
-    Serve { address; port; elf_executable }) $ address $ port $ elf_executable)
+  Term.(pure (fun address port -> Serve { address; port }) $ address $ port)
 
 let serve_t =
   let doc = "Serve allocation profile over HTTP" in
@@ -85,12 +60,7 @@ let dump_t =
 (* View options *)
 
 let view_arg =
-  Term.(pure (fun elf_executable ->
-    (* CR mshinwell: fix this to use an option type *)
-    let elf_executable =
-      if elf_executable = "" then None else Some elf_executable
-    in
-    View { elf_executable }) $ elf_executable)
+  Term.(pure View)
 
 let view_t =
   let doc = "View allocation profile in terminal" in
