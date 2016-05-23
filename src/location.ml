@@ -34,7 +34,8 @@ let create ~location ~selectable =
     | None ->
       match Spacetime_lib.Location.symbol location with
       | Some s -> s
-      | None -> Int64.to_string (Spacetime_lib.Location.address location)
+      | None ->
+        Printf.sprintf "0x%Lx" (Spacetime_lib.Location.address location)
   in
   let foreign = Spacetime_lib.Location.foreign location in
   { display; foreign; selectable }
