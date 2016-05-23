@@ -162,6 +162,7 @@ let rec event_loop ui state =
     update_view ~projects state;
     LTerm_ui.draw ui;
     event_loop ui state
+  | LTerm_event.Key { code = Escape }
   | LTerm_event.Key { code = Backspace } ->
     begin match state.view.View.projects with
     | (address, _) :: projects ->
@@ -170,7 +171,12 @@ let rec event_loop ui state =
     | [] -> ()
     end;
     event_loop ui state
-  | LTerm_event.Key { code = Escape } -> Lwt.return ()
+  | LTerm_event.Key { code = Char c; }
+      when CamomileLibrary.UChar.char_of c = 'q' ->
+    Lwt.return ()
+  | LTerm_event.Key { code = Char c; control = true; }
+      when CamomileLibrary.UChar.char_of c = 'c' ->
+    Lwt.return ()
   | _ -> event_loop ui state
 
 let draw ui matrix t =
@@ -244,6 +250,7 @@ let draw ui matrix t =
 let main state =
   Lazy.force LTerm.stdout
   >>= fun term ->
+  LTerm.set_escape_time term 0.2;
   LTerm_ui.create term (fun matrix size -> draw matrix size state)
   >>= fun ui ->
   Lwt.finalize (fun () -> event_loop ui state) (fun () -> LTerm_ui.quit ui)

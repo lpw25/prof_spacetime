@@ -25,8 +25,12 @@ let create ~location ~selectable =
       let line = string_of_int (Spacetime_lib.Position.line_number pos) in
       let first = string_of_int (Spacetime_lib.Position.start_char pos) in
       let last = string_of_int (Spacetime_lib.Position.end_char pos) in
-      String.concat ""
-        [name; "{"; line; ":"; first; "-"; last; "}"]
+      if Spacetime_lib.Position.start_char pos < 0 then
+        String.concat ""
+          [name; ":"; line; ]
+      else
+        String.concat ""
+          [name; ":"; line; ","; first; "--"; last; ]
     | None ->
       match Spacetime_lib.Location.symbol location with
       | Some s -> s
