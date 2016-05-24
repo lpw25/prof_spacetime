@@ -142,4 +142,4 @@ let to_string t =
 let mode_to_display_string = function
   | Bytes -> "Live words"
   | Blocks -> "Live blocks"
-  | Allocations -> "Allocations"
+  | Allocations -> "All allocated words"

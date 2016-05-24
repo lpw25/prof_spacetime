@@ -146,6 +146,19 @@ var svg = d3.select("body").append("svg")
   .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+svg.append("g")
+  .attr("transform", "translate(-75, " + height / 2 + ")")
+  .append("text")
+  .attr("text-anchor", "middle")
+  .attr("transform", "rotate(-90)")
+  .text("Number of words or blocks")
+
+svg.append("g")
+  .attr("transform", "translate(" + width / 2 + ", " + (height + 40) + ")")
+  .append("text")
+  .attr("text-anchor", "middle")
+  .text("Time since program start")
+
 var body =
   svg.append("g")
     .on("mouseover", function() {
