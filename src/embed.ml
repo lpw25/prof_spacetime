@@ -58,6 +58,10 @@ var title = d3.select("body").append("h1")
 
 var mode_widget_vert = 60;
 
+d3.select("body").append("div")
+    .attr("align", "center")
+    .text("Mouse over the graph to show where values were allocated.  Values allocated from non-OCaml code have their mouse-over popup text in green.  Click a portion of the graph to move up the stack.")
+
 var mode_widget =
   d3.select("body")
     .append("ul")
