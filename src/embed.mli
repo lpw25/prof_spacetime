@@ -1,4 +1,4 @@
 
 val html : string
 
-val js : string
+val js : title:string -> string

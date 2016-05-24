@@ -25,8 +25,8 @@ let rec dump_projections max_depth depth dir series path =
       projections
   end
 
-let dump ~dir series =
+let dump ~dir ~title series =
   ensure_dir dir;
   write_string dir "index.html" Embed.html;
-  write_string dir "graph.js" Embed.js;
+  write_string dir "graph.js" (Embed.js ~title);
   dump_projections 10 0 (dir ^ "/data") series Path.initial

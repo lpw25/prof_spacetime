@@ -2,7 +2,7 @@
 let html = {|
 <html>
 <head>
-<title>Prof. Alloc</title>
+<title>Spacetime</title>
 <style>
 body {
   font: 10px sans-serif;
@@ -51,7 +51,11 @@ li.mode-sel {
 </html>
 |}
 
-let js = {|
+let js ~title = {|
+var title = d3.select("body").append("h1")
+    .attr("align", "center")
+    .html(" |} ^ title ^ {| ");
+
 var mode_widget_vert = 60;
 
 var mode_widget =
@@ -177,6 +181,9 @@ svg.append("g")
   .attr("class", "axis")
   .attr("id","yaxis");
 
+d3.select("body").append("h2")
+    .html("Backtrace (oldest frame first):")
+
 var frame_widget = d3.select("body").append("ul");
 
 function graph(input, dispatch) {
@@ -296,9 +303,11 @@ function graph(input, dispatch) {
     frame_widget.selectAll("li")
       .data(input.frames);
 
-  frame.enter().append("li")
+  frame.enter()
+    .append("li")
     .style("cursor","pointer")
     .style("color","blue")
+    .style("font","12px sans-serif")
     .style("text-decoration","underline");
 
   frame.text(function (d) { return d.display;});

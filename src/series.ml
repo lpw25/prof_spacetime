@@ -184,7 +184,7 @@ let snapshots_json path t =
 let frames_json path { frames } =
   let initial = Path.with_mode Path.initial (Path.mode path) in
   let star_json =
-    `Assoc [ "display", `String "*";
+    `Assoc [ "display", `String "(top of stack)";
              "path", `String (Path.to_string initial) ]
   in
   let _, jsons =

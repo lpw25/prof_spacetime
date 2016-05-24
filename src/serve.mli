@@ -1,2 +1,7 @@
 
-val serve : address:string -> port:int -> Series.t -> unit
+val serve
+   : address:string
+  -> port:int
+  -> title:string
+  -> Series.t
+  -> unit

@@ -12,12 +12,17 @@ let main command profile =
     | Dump { elf_executable; _ }
     | View { elf_executable; _ } -> elf_executable
   in
+  let title =
+    match executable with
+    | None -> "Anonymous"
+    | Some executable -> Filename.basename executable
+  in
   let data = Spacetime_lib.Series.create ?executable profile in
   Printf.printf "done\n%!";
   let series = Series.initial data in
   match command with
-  | Serve { address; port } -> Serve.serve ~address ~port series
-  | Dump { dir } -> Dump.dump ~dir series
+  | Serve { address; port } -> Serve.serve ~address ~port ~title series
+  | Dump { dir } -> Dump.dump ~dir ~title series
   | View _ -> Viewer.show series
 
 open Cmdliner

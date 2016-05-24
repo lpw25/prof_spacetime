@@ -2,7 +2,7 @@ open Lwt
 open Cohttp
 module Server = Cohttp_lwt_unix.Server
 
-let serve ~address ~port series =
+let serve ~address ~port ~title series =
   let header typ =
     let h = Header.init () in
     let h = Header.add h "Content-Type" typ in
@@ -24,7 +24,7 @@ let serve ~address ~port series =
     | "/graph.js" ->
       let headers = header_js in
       let status = `OK in
-      let body = Embed.js in
+      let body = Embed.js ~title in
       Server.respond_string ~headers ~status ~body ()
     | _ -> begin
         match Path.of_string path with

@@ -1,2 +1,2 @@
 
-val dump : dir:string -> Series.t -> unit
+val dump : dir:string -> title:string -> Series.t -> unit
