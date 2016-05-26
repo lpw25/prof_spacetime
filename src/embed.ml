@@ -133,7 +133,7 @@ var gigabyteTickFormat = function (bytes) {
 var yAxis = d3.svg.axis().scale(y).orient("left");
 
 var area = d3.svg.area()
-    .x((d) => { return x(d.time); })
+    .x(function(d) { return x(d.time); })
     .y0(function(d) { return y(d.y0); })
     .y1(function(d) { return y(d.y0 + d.y); });
 
