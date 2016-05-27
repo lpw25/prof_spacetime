@@ -7,7 +7,7 @@ type t = {
 }
 
 and projection = {
-  entries : Spacetime_lib.Entries.t;
+  entries : Spacetime_lib.Entry.t list;
   location : Spacetime_lib.Location.t;
   snapshot : t Lazy.t;
   blocks : int;
@@ -41,8 +41,8 @@ let nth depth l =
 
 let rec create initial depth time stats entries =
   let preindex =
-    Spacetime_lib.Entries.fold
-      (fun entry acc ->
+    List.fold_left
+      (fun acc entry ->
          let words = Spacetime_lib.Entry.words entry in
          let blocks = Spacetime_lib.Entry.blocks entry in
          let allocations = Spacetime_lib.Entry.allocations entry in
@@ -54,18 +54,18 @@ let rec create initial depth time stats entries =
            let entries_acc, loc_acc, words_acc, blocks_acc, allocations_acc =
              try
                Address.Map.find addr acc
-             with Not_found -> Spacetime_lib.Entries.empty, loc, 0, 0, 0
+             with Not_found -> [], loc, 0, 0, 0
            in
            let entries_acc =
              if bottom then entries_acc
-             else Spacetime_lib.Entries.add entry entries_acc
+             else entry :: entries_acc
            in
            let words_acc = words_acc + words in
            let blocks_acc = blocks_acc + blocks in
            let allocations_acc = allocations_acc + allocations in
            Address.Map.add addr
              (entries_acc, loc_acc, words_acc, blocks_acc, allocations_acc) acc)
-      entries Address.Map.empty
+      Address.Map.empty entries
   in
   let index =
     Address.Map.fold
@@ -98,7 +98,11 @@ let locations' acc snapshot =
   Address.Map.fold
     (fun addr proj acc ->
        let location = proj.location in
-       let selectable = not (Spacetime_lib.Entries.is_empty proj.entries) in
+       let selectable =
+         match proj.entries with
+         | [] -> false
+         | _ -> true
+       in
        let location = Location.create ~selectable ~location in
        let location =
          match Address.Map.find addr acc with
