@@ -6,11 +6,10 @@ OCAMLBUILD=ocamlbuild $(OCAMLBUILD_FLAGS)
 
 all: prof-alloc
 
-main.native:
-	$(OCAMLBUILD) main.native
+FORCE:
 
-report.native:
-	$(OCAMLBUILD) report.native
+main.native: FORCE
+	$(OCAMLBUILD) main.native
 
 prof-alloc: main.native
 	$(CP) main.native prof-alloc
