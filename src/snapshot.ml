@@ -86,7 +86,7 @@ let initial snapshot =
   let time = Spacetime_lib.Snapshot.time snapshot in
   let stats = Spacetime_lib.Snapshot.stats snapshot in
   let entries = Spacetime_lib.Snapshot.entries snapshot in
-  create true 0 time stats entries
+  create true 0 time stats (Spacetime_lib.Entries.elements entries)
 
 let project t addr =
   match Address.Map.find addr t.index with
