@@ -1,29 +1,46 @@
 
 type command =
-  | Serve of { address: string; port: int; elf_executable: string option; }
-  | Dump of { dir: string; elf_executable: string option; }
-  | View of { elf_executable: string option; }
+  | Serve of { address: string; port: int; processed: bool; }
+  | Dump of { dir: string; processed: bool; }
+  | View of { processed: bool; }
+  | Process
 
-let main command profile =
+let unmarshal_profile file : Spacetime_lib.Series.t =
+  let ic = open_in_bin file in
+  match Marshal.from_channel ic with
+  | data -> close_in ic; data
+  | exception exn -> close_in ic; raise exn
+
+let marshal_profile (profile : Spacetime_lib.Series.t) file =
+  let oc = open_out_bin file in
+  match Marshal.to_channel oc profile [] with
+  | data -> close_out oc; data
+  | exception exn -> close_out oc; raise exn
+
+let main command profile executable =
   Printf.printf "Processing series...%!";
-  let executable =
+  let processed =
     match command with
-    | Serve { elf_executable; _ }
-    | Dump { elf_executable; _ }
-    | View { elf_executable; _ } -> elf_executable
+    | Serve { processed; _ }
+    | Dump { processed; _ }
+    | View { processed; _ } -> processed
+    | Process -> false
   in
   let title =
     match executable with
     | None -> "Anonymous"
     | Some executable -> Filename.basename executable
   in
-  let data = Spacetime_lib.Series.create ?executable profile in
+  let data =
+    if processed then unmarshal_profile profile
+    else Spacetime_lib.Series.create ?executable profile
+  in
   Printf.printf "done\n%!";
-  let series = Series.initial data in
   match command with
-  | Serve { address; port } -> Serve.serve ~address ~port ~title series
-  | Dump { dir } -> Dump.dump ~dir ~title series
-  | View _ -> Viewer.show series
+  | Serve { address; port } -> Serve.serve ~address ~port ~title (Series.initial data)
+  | Dump { dir } -> Dump.dump ~dir ~title (Series.initial data)
+  | View _ -> Viewer.show (Series.initial data)
+  | Process -> marshal_profile data (profile ^ ".p")
 
 open Cmdliner
 
@@ -32,6 +49,15 @@ open Cmdliner
 let profile =
   let doc = "$(docv) to view" in
   Arg.(required & pos 0 (some string) None & info [] ~docv:"PROFILE" ~doc)
+
+let executable =
+  let doc = "Specify the ELF executable that was profiled" in
+  Arg.(value & opt (some string) None
+       & info ["e";"executable"] ~docv:"PATH" ~doc)
+
+let processed =
+  let doc = "Use an already processed allocation profile" in
+  Arg.(value & flag & info ["p";"processed"] ~doc)
 
 (* Serve options *)
 
@@ -48,21 +74,14 @@ let port =
   let doc = "Use $(docv) as port" in
   Arg.(value & opt int default_port & info ["port"] ~docv:"PORT" ~doc)
 
-let elf_executable =
-  let doc = "Specify the ELF executable that was profiled" in
-  Arg.(value & opt string "" & info ["elf-executable"] ~docv:"PATH" ~doc)
-
 let serve_arg =
-  Term.(pure (fun address port elf_executable ->
-    (* CR mshinwell: fix this to use an option type *)
-    let elf_executable =
-      if elf_executable = "" then None else Some elf_executable
-    in
-    Serve { address; port; elf_executable }) $ address $ port $ elf_executable)
+  Term.(pure
+    (fun address port processed -> Serve { address; port; processed })
+      $ address $ port $ processed)
 
 let serve_t =
   let doc = "Serve allocation profile over HTTP" in
-  Term.(pure main $ serve_arg $ profile, info "serve" ~doc)
+  Term.(pure main $ serve_arg $ profile $ executable, info "serve" ~doc)
 
 (* Dump options *)
 
@@ -71,30 +90,32 @@ let dir =
   Arg.(required & pos 0 (some string) None & info [] ~docv:"DIRECTORY" ~doc)
 
 let dump_arg =
-  Term.(pure (fun dir elf_executable ->
-    (* CR mshinwell: fix this to use an option type *)
-    let elf_executable =
-      if elf_executable = "" then None else Some elf_executable
-    in
-    Dump { dir; elf_executable }) $ dir $ elf_executable)
+  Term.(pure
+    (fun dir processed -> Dump { dir; processed })
+      $ dir $ processed)
 
 let dump_t =
   let doc = "Dump allocation profile as HTML" in
-  Term.(pure main $ dump_arg $ profile, info "dump" ~doc)
+  Term.(pure main $ dump_arg $ profile $ executable, info "dump" ~doc)
 
 (* View options *)
 
 let view_arg =
-  Term.(pure (fun elf_executable ->
-    (* CR mshinwell: fix this to use an option type *)
-    let elf_executable =
-      if elf_executable = "" then None else Some elf_executable
-    in
-    View { elf_executable }) $ elf_executable)
+  Term.(pure
+    (fun processed -> View { processed })
+      $ processed)
 
 let view_t =
   let doc = "View allocation profile in terminal" in
-  Term.(pure main $ view_arg $ profile, info "view" ~doc)
+  Term.(pure main $ view_arg $ profile $ executable, info "view" ~doc)
+
+(* Process options *)
+
+let process_arg = Term.pure Process
+
+let process_t =
+  let doc = "Process allocation profile" in
+  Term.(pure main $ process_arg $ profile $ executable, info "process" ~doc)
 
 (* Handle default case *)
 
@@ -106,7 +127,7 @@ let default_t =
   Term.(ret default, info "prof-alloc" ~doc)
 
 let () =
-  match Term.eval_choice default_t [serve_t; view_t; dump_t] with
+  match Term.eval_choice default_t [serve_t; view_t; process_t; dump_t] with
   | `Error _ -> exit 1
   | `Ok () -> exit 0
   | `Help -> exit 0
