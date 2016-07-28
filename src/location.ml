@@ -20,12 +20,18 @@ let other =
 let create ~location ~selectable =
   let display =
     match Spacetime_lib.Location.position location with
-    | Some pos ->
-      let name = Spacetime_lib.Position.filename pos in
-      let line = string_of_int (Spacetime_lib.Position.line_number pos) in
-      let first = string_of_int (Spacetime_lib.Position.start_char pos) in
-      let last = string_of_int (Spacetime_lib.Position.end_char pos) in
-      let pos =
+    | [] ->
+      begin match Spacetime_lib.Location.symbol location with
+      | Some s -> s
+      | None ->
+        Printf.sprintf "0x%Lx" (Spacetime_lib.Location.address location)
+      end
+    | positions ->
+      let one_pos pos =
+        let name = Spacetime_lib.Position.filename pos in
+        let line = string_of_int (Spacetime_lib.Position.line_number pos) in
+        let first = string_of_int (Spacetime_lib.Position.start_char pos) in
+        let last = string_of_int (Spacetime_lib.Position.end_char pos) in
         if Spacetime_lib.Position.start_char pos < 0 then
           String.concat ""
             [name; ":"; line; ]
@@ -33,15 +39,13 @@ let create ~location ~selectable =
           String.concat ""
             [name; ":"; line; ","; first; "--"; last; ]
       in
+      let pos =
+        String.concat "; " (List.map one_pos positions)
+      in
       begin match Spacetime_lib.Location.symbol location with
       | Some symbol -> Printf.sprintf "%s (%s)" pos symbol
       | None -> pos
       end
-    | None ->
-      match Spacetime_lib.Location.symbol location with
-      | Some s -> s
-      | None ->
-        Printf.sprintf "0x%Lx" (Spacetime_lib.Location.address location)
   in
   let foreign = Spacetime_lib.Location.foreign location in
   { display; foreign; selectable }
