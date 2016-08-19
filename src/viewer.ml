@@ -255,7 +255,15 @@ let main state =
   >>= fun ui ->
   Lwt.finalize (fun () -> event_loop ui state) (fun () -> LTerm_ui.quit ui)
 
+let check_not_empty series =
+  match Series.snapshots series with
+  | [] ->
+    Format.eprintf "Series contains no snapshots\n%!";
+    exit 1
+  | _ :: _ -> ()
+
 let show series =
+  check_not_empty series;
   let view = View.create ~mode:`Words series ~index:0 [] in
   let state = { series; snapshot_index = 0; view } in
   Lwt_main.run (main state)
