@@ -224,6 +224,10 @@ let draw ui matrix t =
         in
         let reverse = view.View.row_cursor = (row + view.View.top_row - 1) in
         let cols = size.LTerm_geom.cols in
+        let key =
+          if String.length key > cols - 23 then String.sub key 0 (cols - 23)
+          else key
+        in
         LTerm_draw.draw_styled ctx row 0
           (eval [ B_reverse reverse
                 ; B_fg color
