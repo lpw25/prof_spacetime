@@ -1,8 +1,8 @@
 
 type command =
-  | Serve of { address: string; port: int; processed: bool; }
-  | Dump of { dir: string; processed: bool; }
-  | View of { processed: bool; }
+  | Serve of { address: string; port: int; processed: bool; inverted: bool; }
+  | Dump of { dir: string; processed: bool; inverted: bool }
+  | View of { processed: bool; inverted: bool; }
   | Process
 
 let unmarshal_profile file : Spacetime_lib.Series.t =
@@ -37,9 +37,10 @@ let main command profile executable =
   in
   Printf.printf "done\n%!";
   match command with
-  | Serve { address; port } -> Serve.serve ~address ~port ~title (Series.initial data)
-  | Dump { dir } -> Dump.dump ~dir ~title (Series.initial data)
-  | View _ -> Viewer.show (Series.initial data)
+  | Serve { address; port; inverted } ->
+    Serve.serve ~address ~port ~title (Series.initial data ~inverted)
+  | Dump { dir; inverted } -> Dump.dump ~dir ~title (Series.initial data ~inverted)
+  | View { inverted} -> Viewer.show (Series.initial data ~inverted)
   | Process -> marshal_profile data (profile ^ ".p")
 
 open Cmdliner
@@ -59,6 +60,10 @@ let processed =
   let doc = "Use an already processed allocation profile" in
   Arg.(value & flag & info ["p";"processed"] ~doc)
 
+let inverted =
+  let doc = "Aggregate traces by their outer-most frame" in
+  Arg.(value & flag & info ["i";"inverted"] ~doc)
+
 (* Serve options *)
 
 let default_address = "127.0.0.1"
@@ -76,8 +81,9 @@ let port =
 
 let serve_arg =
   Term.(pure
-    (fun address port processed -> Serve { address; port; processed })
-      $ address $ port $ processed)
+          (fun address port processed inverted ->
+             Serve { address; port; processed; inverted })
+        $ address $ port $ processed $ inverted)
 
 let serve_t =
   let doc = "Serve allocation profile over HTTP" in
@@ -91,8 +97,8 @@ let dir =
 
 let dump_arg =
   Term.(pure
-    (fun dir processed -> Dump { dir; processed })
-      $ dir $ processed)
+          (fun dir processed inverted -> Dump { dir; processed; inverted })
+        $ dir $ processed $ inverted)
 
 let dump_t =
   let doc = "Dump allocation profile as HTML" in
@@ -102,8 +108,8 @@ let dump_t =
 
 let view_arg =
   Term.(pure
-    (fun processed -> View { processed })
-      $ processed)
+          (fun processed inverted -> View { processed; inverted })
+        $ processed $ inverted)
 
 let view_t =
   let doc = "View allocation profile in terminal" in

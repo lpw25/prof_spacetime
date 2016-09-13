@@ -39,7 +39,7 @@ let nth depth l =
   in
   loop 0 l
 
-let rec create initial depth time stats entries =
+let rec create initial depth time stats entries ~inverted =
   let preindex =
     List.fold_left
       (fun acc entry ->
@@ -47,6 +47,7 @@ let rec create initial depth time stats entries =
          let blocks = Spacetime_lib.Entry.blocks entry in
          let allocations = Spacetime_lib.Entry.allocations entry in
          let backtrace = Spacetime_lib.Entry.backtrace entry in
+         let backtrace = if inverted then List.rev backtrace else backtrace in
          match nth depth backtrace with
          | None -> acc
          | Some (loc, bottom) ->
@@ -72,7 +73,7 @@ let rec create initial depth time stats entries =
       (fun addr (entries, location, words, blocks, allocations) acc ->
          let depth = depth + 1 in
          let snapshot =
-           lazy (create false depth time stats entries)
+           lazy (create false depth time stats entries ~inverted)
          in
          let proj =
            { entries; location; snapshot; words; blocks; allocations }
@@ -82,11 +83,11 @@ let rec create initial depth time stats entries =
   in
   { time; stats; index; initial }
 
-let initial snapshot =
+let initial snapshot ~inverted =
   let time = Spacetime_lib.Snapshot.time snapshot in
   let stats = Spacetime_lib.Snapshot.stats snapshot in
   let entries = Spacetime_lib.Snapshot.entries snapshot in
-  create true 0 time stats entries
+  create true 0 time stats entries ~inverted
 
 let project t addr =
   match Address.Map.find addr t.index with

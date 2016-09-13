@@ -68,8 +68,8 @@ let reduced_locations mode snapshots locations =
          | loc -> Address.Map.add addr loc acc)
     Address.Map.empty addr_array
 
-let initial series =
-  let snapshots = List.map Snapshot.initial series in
+let initial series ~inverted =
+  let snapshots = List.map (Snapshot.initial ~inverted) series in
   let frames = [] in
   let locations = lazy (locations_of_snapshots snapshots) in
   let reduced_bytes =

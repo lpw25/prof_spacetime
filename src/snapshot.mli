@@ -6,7 +6,7 @@ val time : t -> float
 
 val stats : t -> Spacetime_lib.Stats.t
 
-val initial : Spacetime_lib.Snapshot.t -> t
+val initial : Spacetime_lib.Snapshot.t -> inverted:bool -> t
 
 val project : t -> Address.t -> t
 

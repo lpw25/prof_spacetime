@@ -1,7 +1,7 @@
 
 type t
 
-val initial : Spacetime_lib.Series.t -> t
+val initial : Spacetime_lib.Series.t -> inverted:bool -> t
 
 val project : t -> Address.t -> t
 
