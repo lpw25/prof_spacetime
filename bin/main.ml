@@ -3,6 +3,12 @@ type command =
   | Serve of { address: string; port: int; processed: bool; inverted: bool; }
   | Dump of { dir: string; processed: bool; inverted: bool }
   | View of { processed: bool; inverted: bool; }
+  | Print_snapshot of { processed:         bool
+                      ; snapshot_index:    int
+                      ; print_filename:    bool
+                      ; print_symbol:      bool
+                      ; print_line_number: bool
+                      }
   | Process
 
 let unmarshal_profile file : Spacetime_lib.Series.t =
@@ -23,7 +29,8 @@ let main command profile executable =
     match command with
     | Serve { processed; _ }
     | Dump { processed; _ }
-    | View { processed; _ } -> processed
+    | View { processed; _ }
+    | Print_snapshot { processed; _ } -> processed
     | Process -> false
   in
   let title =
@@ -41,6 +48,17 @@ let main command profile executable =
     Serve.serve ~address ~port ~title (Series.initial data ~inverted)
   | Dump { dir; inverted } -> Dump.dump ~dir ~title (Series.initial data ~inverted)
   | View { inverted} -> Viewer.show (Series.initial data ~inverted)
+  | Print_snapshot { snapshot_index
+                   ; print_filename
+                   ; print_symbol
+                   ; print_line_number
+                   } ->
+    Print_snapshot.print
+      (List.nth data snapshot_index)
+      ~mode:`Words
+      ~print_filename
+      ~print_symbol
+      ~print_line_number
   | Process -> marshal_profile data (profile ^ ".p")
 
 open Cmdliner
@@ -104,6 +122,49 @@ let dump_t =
   let doc = "Dump allocation profile as HTML" in
   Term.(pure main $ dump_arg $ profile $ executable, info "dump" ~doc)
 
+(* Print options *)
+
+let print_snapshot_arg =
+  let snapshot_index =
+    let doc = "$(docv) which snapshot to print" in
+    Arg.(required & pos 1 (some int) None & info [] ~docv:"SNAPSHOT-INDEX" ~doc)
+  in
+  let print_filename =
+    let doc = "print out filename" in
+    Arg.(value & flag & info ["filename"] ~doc)
+  in
+  let print_symbol =
+    let doc = "print out symbol" in
+    Arg.(value & flag & info ["symbol"] ~doc)
+  in
+  let print_line_number =
+    let doc = "print out line_number" in
+    Arg.(value & flag & info ["line-number"] ~doc)
+  in
+  Term.(pure
+          (fun processed
+            snapshot_index
+            print_filename
+            print_symbol
+            print_line_number ->
+            Print_snapshot
+              { processed
+              ; snapshot_index
+              ; print_filename
+              ; print_symbol
+              ; print_line_number })
+        $ processed
+        $ snapshot_index
+        $ print_filename
+        $ print_symbol
+        $ print_line_number
+       )
+
+let print_snapshot_t =
+  let doc = "Print details of snapshot to stdout" in
+  Term.(pure main $ print_snapshot_arg $ profile $ executable, info "print" ~doc)
+;;
+
 (* View options *)
 
 let view_arg =
@@ -133,7 +194,8 @@ let default_t =
   Term.(ret default, info "prof-alloc" ~doc)
 
 let () =
-  match Term.eval_choice default_t [serve_t; view_t; process_t; dump_t] with
+  match Term.eval_choice default_t
+          [serve_t; view_t; process_t; dump_t; print_snapshot_t] with
   | `Error _ -> exit 1
   | `Ok () -> exit 0
   | `Help -> exit 0
