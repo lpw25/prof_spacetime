@@ -96,14 +96,14 @@ let inverted =
 
 let default_address = "127.0.0.1"
 
-let address =
+let serve_address =
   let doc = "Use $(docv) as address" in
   Arg.(value & opt string default_address
        & info ["address"] ~docv:"ADDRESS" ~doc)
 
 let default_port = 8080
 
-let port =
+let serve_port =
   let doc = "Use $(docv) as port" in
   Arg.(value & opt int default_port & info ["port"] ~docv:"PORT" ~doc)
 
@@ -111,7 +111,7 @@ let serve_arg =
   Term.(pure
           (fun address port processed inverted ->
              Serve { address; port; processed; inverted })
-        $ address $ port $ processed $ inverted)
+        $ serve_address $ serve_port $ processed $ inverted)
 
 let serve_t =
   let doc = "Serve allocation profile over HTTP" in
@@ -134,61 +134,40 @@ let dump_t =
 
 (* Print options *)
 
+let print_filename =
+  let doc = "print out filename" in
+  Arg.(value & flag & info ["filename"] ~doc)
+
+let print_symbol =
+  let doc = "print out symbol" in
+  Arg.(value & flag & info ["symbol"] ~doc)
+
+let print_line_number =
+  let doc = "print out line_number" in
+  Arg.(value & flag & info ["line-number"] ~doc)
+
+let print_snapshot_index =
+  let doc = "$(docv) which snapshot to print" in
+  Arg.(required & pos 1 (some int) None & info [] ~docv:"SNAPSHOT-INDEX" ~doc)
+
+let print_mode =
+  let mode =
+    Arg.enum ["words", `Words; "blocks", `Blocks; "allocations", `Allocations]
+  in
+  let doc =
+    "Numbers to output. $(docv) should be one of words, blocks and allocations"
+  in
+  Arg.(value & opt mode `Words & info ["mode"] ~docv:"MODE" ~doc)
+
 let print_snapshot_arg =
-  let snapshot_index =
-    let doc = "$(docv) which snapshot to print" in
-    Arg.(required & pos 1 (some int) None & info [] ~docv:"SNAPSHOT-INDEX" ~doc)
-  in
-  let mode, mode_of_string =
-    let doc =
-      "Numbers to output. $(docv) should be one of words, blocks and allocations"
-    in
-    let mode_of_string = function
-      | "words"       -> `Words
-      | "blocks"      -> `Blocks
-      | "allocations" -> `Allocations
-      | str           -> failwith ("unknown mode " ^ str)
-    in
-    Arg.(value & opt string "words"
-         & info ["mode"] ~docv:"MODE" ~doc),
-    mode_of_string
-  in
-  let print_filename =
-    let doc = "print out filename" in
-    Arg.(value & flag & info ["filename"] ~doc)
-  in
-  let print_symbol =
-    let doc = "print out symbol" in
-    Arg.(value & flag & info ["symbol"] ~doc)
-  in
-  let print_line_number =
-    let doc = "print out line_number" in
-    Arg.(value & flag & info ["line-number"] ~doc)
-  in
   Term.(pure
-          (fun processed
-            snapshot_index
-            mode
-            inverted
-            print_filename
-            print_symbol
-            print_line_number ->
+          (fun processed snapshot_index mode inverted
+            print_filename print_symbol print_line_number ->
             Print_snapshot
-              { processed
-              ; mode = mode_of_string mode
-              ; inverted
-              ; snapshot_index
-              ; print_filename
-              ; print_symbol
-              ; print_line_number })
-        $ processed
-        $ snapshot_index
-        $ mode
-        $ inverted
-        $ print_filename
-        $ print_symbol
-        $ print_line_number
-       )
+              { processed ; mode ; inverted ; snapshot_index
+              ; print_filename ; print_symbol ; print_line_number })
+        $ processed $ print_snapshot_index $ print_mode $ inverted
+        $ print_filename $ print_symbol $ print_line_number)
 
 let print_snapshot_t =
   let doc = "Print details of snapshot to stdout" in
