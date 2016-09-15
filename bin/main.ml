@@ -5,6 +5,8 @@ type command =
   | View of { processed: bool; inverted: bool; }
   | Print_snapshot of { processed:         bool
                       ; snapshot_index:    int
+                      ; mode:              [`Words | `Blocks | `Allocations]
+                      ; inverted:          bool
                       ; print_filename:    bool
                       ; print_symbol:      bool
                       ; print_line_number: bool
@@ -49,13 +51,21 @@ let main command profile executable =
   | Dump { dir; inverted } -> Dump.dump ~dir ~title (Series.initial data ~inverted)
   | View { inverted} -> Viewer.show (Series.initial data ~inverted)
   | Print_snapshot { snapshot_index
+                   ; mode
+                   ; inverted
                    ; print_filename
                    ; print_symbol
                    ; print_line_number
                    } ->
+    let num_snapshots = List.length data in
+    if snapshot_index > num_snapshots - 1 then begin
+      failwith (Printf.sprintf "snapshot index out of bound, there are only %d in total"
+                  num_snapshots)
+    end;
     Print_snapshot.print
       (List.nth data snapshot_index)
-      ~mode:`Words
+      ~mode
+      ~inverted
       ~print_filename
       ~print_symbol
       ~print_line_number
@@ -129,6 +139,20 @@ let print_snapshot_arg =
     let doc = "$(docv) which snapshot to print" in
     Arg.(required & pos 1 (some int) None & info [] ~docv:"SNAPSHOT-INDEX" ~doc)
   in
+  let mode, mode_of_string =
+    let doc =
+      "Numbers to output. $(docv) should be one of words, blocks and allocations"
+    in
+    let mode_of_string = function
+      | "words"       -> `Words
+      | "blocks"      -> `Blocks
+      | "allocations" -> `Allocations
+      | str           -> failwith ("unknown mode " ^ str)
+    in
+    Arg.(value & opt string "words"
+         & info ["mode"] ~docv:"MODE" ~doc),
+    mode_of_string
+  in
   let print_filename =
     let doc = "print out filename" in
     Arg.(value & flag & info ["filename"] ~doc)
@@ -144,17 +168,23 @@ let print_snapshot_arg =
   Term.(pure
           (fun processed
             snapshot_index
+            mode
+            inverted
             print_filename
             print_symbol
             print_line_number ->
             Print_snapshot
               { processed
+              ; mode = mode_of_string mode
+              ; inverted
               ; snapshot_index
               ; print_filename
               ; print_symbol
               ; print_line_number })
         $ processed
         $ snapshot_index
+        $ mode
+        $ inverted
         $ print_filename
         $ print_symbol
         $ print_line_number

@@ -39,7 +39,8 @@ let position_to_string
   String.concat "," (filter_map [filename ; line_number ; symbol] ~f:id)
 ;;
 
-let backtrace_to_string backtrace ~print_filename ~print_symbol ~print_line_number =
+let backtrace_to_string backtrace
+      ~inverted ~print_filename ~print_symbol ~print_line_number =
   let location_to_string loc =
     List.map
       (position_to_string
@@ -47,13 +48,13 @@ let backtrace_to_string backtrace ~print_filename ~print_symbol ~print_line_numb
          ~print_filename ~print_symbol ~print_line_number)
       (Location.position loc)
   in
-
   List.map location_to_string backtrace
   |> List.concat
+  |> (if inverted then List.rev else id)
   |> String.concat ";"
 ;;
 
-let print_entry entry ~mode ~print_filename ~print_symbol ~print_line_number =
+let print_entry entry ~mode ~inverted ~print_filename ~print_symbol ~print_line_number =
   let number =
     match mode with
     | `Words       -> Entry.words       entry
@@ -62,19 +63,19 @@ let print_entry entry ~mode ~print_filename ~print_symbol ~print_line_number =
   in
   if number > 0 then begin
     backtrace_to_string (Entry.backtrace entry)
-      ~print_filename ~print_symbol ~print_line_number
+      ~inverted ~print_filename ~print_symbol ~print_line_number
     |> print_string;
     print_char ' ';
     print_int number;
     print_newline ()
   end
 
-let print snapshot ~mode ~print_filename ~print_symbol ~print_line_number =
-  let print_filename =
+let print snapshot ~mode ~inverted ~print_filename ~print_symbol ~print_line_number =
+  let print_symbol =
     if not print_filename && not print_symbol && not print_line_number then
       true
-    else print_filename
+    else print_symbol
   in
   List.iter
-    (print_entry ~mode ~print_filename ~print_symbol ~print_line_number)
+    (print_entry ~mode ~inverted ~print_filename ~print_symbol ~print_line_number)
     (Snapshot.entries snapshot)
