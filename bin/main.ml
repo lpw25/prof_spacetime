@@ -199,8 +199,8 @@ let default =
   Term.(pure (`Error(true, "command expected.")))
 
 let default_t =
-  let doc = "OCaml allocation profile viewer" in
-  Term.(ret default, info "prof-alloc" ~doc)
+  let doc = "OCaml spacetime profile viewer" in
+  Term.(ret default, info "prof-spacetime" ~doc)
 
 let () =
   match Term.eval_choice default_t

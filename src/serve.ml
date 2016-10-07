@@ -6,7 +6,7 @@ let serve ~address ~port ~title series =
   let header typ =
     let h = Header.init () in
     let h = Header.add h "Content-Type" typ in
-    let h = Header.add h "Server" "prof_alloc" in
+    let h = Header.add h "Server" "prof_spacetime" in
     h
   in
   let header_html = header "text/html; charset=UTF-8" in
