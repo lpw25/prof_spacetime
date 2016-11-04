@@ -1,10 +1,12 @@
 opam-version: "1"
-maintainer: "leo@lpw25.net"
-authors: [
-  "Leo White <leo@lpw25.net>"
-]
-license: "MIT"
+name: "prof_spacetime"
 version: "0.1.0"
+maintainer: "Leo White <leo@lpw25.net>"
+authors: [ "Leo White <leo@lpw25.net>" ]
+homepage: "https://github.com/lpw25/prof_spacetime"
+bug-reports: "https://github.com/lpw25/prof_spacetime"
+license: "MIT"
+dev-repo: "https://github.com/lpw25/prof_spacetime"
 depends: [
   "cmdliner"
   "cohttp"
@@ -16,5 +18,5 @@ depends: [
 ]
 build: [
   [make]
-  [make "install"]
 ]
+
