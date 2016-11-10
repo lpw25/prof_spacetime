@@ -1,1 +1,1 @@
-bin: [ prof_spacetime ]
+bin: [ "prof_spacetime" ]
