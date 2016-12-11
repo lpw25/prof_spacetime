@@ -37,17 +37,11 @@ To view a spacetime profile in the browser use the `serve` command:
 By default, this will serve the profile on `127.0.0.1:8080`. The address
 and port can be changed with the `--address` and `--port` options.
 
-To get locations for C function calls, you should also use the `-e`
-option to pass `prof_spacetime` the executable from which the profile was
-generated:
-
-    prof_spacetime serve -e foo.exe spacetime-1234
-
 ## Viewing profiles in the terminal
 
 To view a spacetime profile in the terminal use the `view` command:
 
-    prof_spacetime view -e foo.exe spacetime-1234
+    prof_spacetime view spacetime-1234
 
 ## Preprocessing spacetime profiles
 
@@ -55,10 +49,18 @@ Processing a spacetime profile can take a while. To avoid redoing this
 work each time you want to serve the profile you can use the `process`
 command:
 
-    prof_spacetime process -e foo.exe spacetime-1234
+    prof_spacetime process spacetime-1234
 
 which will create a preprocessed version of the profile
 `spacetime-1234.p`. This can then be passed to the `serve` or `view`
 commands using the `-p` flag:
 
-    prof_spacetime serve -p -e foo.exe spacetime-1234.p
+    prof_spacetime serve -p spacetime-1234.p
+
+## Locations for C function calls
+
+To get locations for C function calls, you should also use the `-e`
+option to pass `prof_spacetime` the executable from which the profile was
+generated. This works with all commands:
+
+    prof_spacetime serve -e foo.exe spacetime-1234
