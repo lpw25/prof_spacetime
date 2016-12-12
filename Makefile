@@ -1,18 +1,22 @@
 
 CP=cp
+RM=rm
 
 OCAMLBUILD_FLAGS=-use-ocamlfind -I src -I bin
 OCAMLBUILD=ocamlbuild $(OCAMLBUILD_FLAGS)
 
-all: prof_spacetime
+BINARY=prof_spacetime
+
+all: $(BINARY)
 
 FORCE:
 
 main.native: FORCE
 	$(OCAMLBUILD) main.native
 
-prof_spacetime: main.native
-	$(CP) main.native prof_spacetime
+$(BINARY): main.native
+	$(CP) main.native $@
 
 clean:
 	$(OCAMLBUILD) -clean
+	$(RM) -f $(BINARY)
