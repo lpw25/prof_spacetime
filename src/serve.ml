@@ -51,5 +51,5 @@ let serve ~address ~port ~title series =
     let ctx = Cohttp_lwt_unix_net.init ~ctx () in
     Server.create ~ctx ~mode server
   in
-  Printf.printf "Serving on %s:%d\n%!" address port;
+  Printf.printf "Serving on http://%s:%d/\n%!" address port;
   Lwt_main.run body
