@@ -8,7 +8,8 @@ module View = struct
     ; projects : (Address.t * string) list
     ; summary : (Address.t * string * int) list
     ; total : int
-    ; mode : [ `Words | `Blocks | `Allocations ]
+    ; mode : [ `Words | `Blocks | `Allocations | `Indirect_calls
+        | `Direct_calls ]
     ; mutable row_cursor : int
     ; mutable top_row : int
     }
@@ -85,13 +86,18 @@ type state =
   ; mutable view : View.t
   }
 
-let update_view ?mode ?address ?projects state =
+let update_view ?go_to_top ?mode ?address ?projects state =
   let address =
     match address with
     | Some address -> address
     | None         ->
       List.nth state.view.View.summary (state.view.View.row_cursor - 1)
       |> fun (address, _, _) -> address
+  in
+  let address =
+    match go_to_top with
+    | None -> Some address
+    | Some () -> None
   in
   let projects =
     match projects with
@@ -104,7 +110,7 @@ let update_view ?mode ?address ?projects state =
     | None      -> state.view.View.mode
   in
   let view =
-    View.create ~mode ~address state.series ~index:state.snapshot_index projects
+    View.create ~mode ?address state.series ~index:state.snapshot_index projects
   in
   state.view <- view
 
@@ -121,8 +127,10 @@ let rec event_loop ui state =
       | `Words -> `Blocks
       | `Blocks -> `Allocations
       | `Allocations -> `Words
+      | `Indirect_calls -> `Direct_calls
+      | `Direct_calls -> `Indirect_calls
     in
-    update_view ~mode state;
+    update_view ~go_to_top:() ~mode state;
     LTerm_ui.draw ui;
     event_loop ui state
   | LTerm_event.Key { code = Left } ->
@@ -194,6 +202,8 @@ let draw ui matrix t =
     | `Words -> "live words"
     | `Blocks -> "live blocks"
     | `Allocations -> "allocated words"
+    | `Indirect_calls -> "indirect calls"
+    | `Direct_calls -> "direct calls"
   in
   LTerm_draw.draw_styled ctx 0 0 ~style:header_bar
     (eval [ S(Printf.sprintf " [%s] Time %f, Total %d %s"
@@ -207,6 +217,7 @@ let draw ui matrix t =
     match view.View.mode with
     | `Words | `Allocations -> "w"
     | `Blocks -> "b"
+    | `Indirect_calls | `Direct_calls -> ""
   in
   let rec loop row = function
     | (_address, key, value) :: tl ->
@@ -272,3 +283,8 @@ let show series =
   let state = { series; snapshot_index = 0; view } in
   Lwt_main.run (main state)
 
+let show_calls series =
+  check_not_empty series;
+  let view = View.create ~mode:`Direct_calls series ~index:0 [] in
+  let state = { series; snapshot_index = 0; view } in
+  Lwt_main.run (main state)

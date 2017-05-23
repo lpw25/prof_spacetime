@@ -3,6 +3,8 @@ type mode =
   | Bytes
   | Blocks
   | Allocations
+  | Indirect_calls
+  | Direct_calls
 
 type kind =
   | Reduced

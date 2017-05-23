@@ -4,7 +4,7 @@ type t
 
 val time : t -> float
 
-val stats : t -> Spacetime_lib.Stats.t
+val stats : t -> Spacetime_lib.Stats.t option
 
 val initial : Spacetime_lib.Snapshot.t -> inverted:bool -> t
 
@@ -24,7 +24,12 @@ val blocks : t -> Address.t -> int
 
 val allocations : t -> Address.t -> int
 
+val indirect_calls : t -> Address.t -> int
+
+val direct_calls : t -> Address.t -> int
+
 val to_json : Path.mode -> Location.t Address.Map.t -> t -> Yojson.Basic.json
 
-val to_summary_list : ?mode:[ `Words | `Blocks | `Allocations ] ->
-  Location.t Address.Map.t -> t -> (Address.t * string * int) list
+val to_summary_list
+   : ?mode:[ `Words | `Blocks | `Allocations | `Indirect_calls | `Direct_calls ]
+  -> Location.t Address.Map.t -> t -> (Address.t * string * int) list
