@@ -1,16 +1,15 @@
+open Prof_spacetime_lib
 
 type command =
-  | Serve of { address: string; port: int; processed: bool; inverted: bool; }
-  | Dump of { dir: string; processed: bool; inverted: bool }
-  | View of { processed: bool; inverted: bool; }
-  | Print_snapshot of { processed:         bool
-                      ; snapshot_index:    int
-                      ; mode:              [`Words | `Blocks | `Allocations]
-                      ; inverted:          bool
-                      ; print_filename:    bool
-                      ; print_symbol:      bool
-                      ; print_line_number: bool
-                      }
+  | Serve of { address: string; port: int; processed: bool; }
+  | View of { processed: bool; }
+  | Print of
+      { processed:         bool;
+        mode:              Print.Mode.t;
+        inverted:          bool;
+        print_filename:    bool;
+        print_symbol:      bool;
+        print_line_number: bool; }
   | Process
 
 let unmarshal_profile file : Spacetime_lib.Series.t =
@@ -30,9 +29,8 @@ let main command profile executable =
   let processed =
     match command with
     | Serve { processed; _ }
-    | Dump { processed; _ }
     | View { processed; _ }
-    | Print_snapshot { processed; _ } -> processed
+    | Print { processed; _ } -> processed
     | Process -> false
   in
   let title =
@@ -46,30 +44,19 @@ let main command profile executable =
   in
   Printf.printf "done\n%!";
   match command with
-  | Serve { address; port; inverted } ->
-    Serve.serve ~address ~port ~title (Series.initial data ~inverted)
-  | Dump { dir; inverted } -> Dump.dump ~dir ~title (Series.initial data ~inverted)
-  | View { inverted} -> Viewer.show (Series.initial data ~inverted)
-  | Print_snapshot { snapshot_index
-                   ; mode
-                   ; inverted
-                   ; print_filename
-                   ; print_symbol
-                   ; print_line_number
-                   } ->
-    let num_snapshots = List.length data in
-    if snapshot_index > num_snapshots - 1 then begin
-      failwith (Printf.sprintf "snapshot index out of bound, there are only %d in total"
-                  num_snapshots)
-    end;
-    Print_snapshot.print
-      (List.nth data snapshot_index)
-      ~mode
-      ~inverted
-      ~print_filename
-      ~print_symbol
-      ~print_line_number
-  | Process -> marshal_profile data (profile ^ ".p")
+  | Serve { address; port; } ->
+      let series = Series.create data in
+      Serve.serve ~address ~port ~title series
+  | View _ ->
+      let series = Series.create data in
+      Viewer.show series
+  | Print
+      { mode; inverted;
+        print_filename; print_symbol; print_line_number; } ->
+    Print.print data
+     ~mode ~inverted ~print_filename ~print_symbol ~print_line_number
+  | Process ->
+    marshal_profile data (profile ^ ".p")
 
 open Cmdliner
 
@@ -88,10 +75,6 @@ let processed =
   let doc = "Use an already processed allocation profile" in
   Arg.(value & flag & info ["p";"processed"] ~doc)
 
-let inverted =
-  let doc = "Aggregate traces by their outer-most frame" in
-  Arg.(value & flag & info ["i";"inverted"] ~doc)
-
 (* Serve options *)
 
 let default_address = "127.0.0.1"
@@ -109,28 +92,13 @@ let serve_port =
 
 let serve_arg =
   Term.(pure
-          (fun address port processed inverted ->
-             Serve { address; port; processed; inverted })
-        $ serve_address $ serve_port $ processed $ inverted)
+          (fun address port processed ->
+             Serve { address; port; processed })
+        $ serve_address $ serve_port $ processed)
 
 let serve_t =
   let doc = "Serve allocation profile over HTTP" in
   Term.(pure main $ serve_arg $ profile $ executable, info "serve" ~doc)
-
-(* Dump options *)
-
-let dir =
-  let doc = "$(docv) in which to dump files" in
-  Arg.(required & pos 0 (some string) None & info [] ~docv:"DIRECTORY" ~doc)
-
-let dump_arg =
-  Term.(pure
-          (fun dir processed inverted -> Dump { dir; processed; inverted })
-        $ dir $ processed $ inverted)
-
-let dump_t =
-  let doc = "Dump allocation profile as HTML" in
-  Term.(pure main $ dump_arg $ profile $ executable, info "dump" ~doc)
 
 (* Print options *)
 
@@ -146,40 +114,94 @@ let print_line_number =
   let doc = "print out line_number" in
   Arg.(value & flag & info ["line-number"] ~doc)
 
-let print_snapshot_index =
-  let doc = "$(docv) which snapshot to print" in
-  Arg.(required & pos 1 (some int) None & info [] ~docv:"SNAPSHOT-INDEX" ~doc)
+type print_mode =
+  | Words
+  | Blocks
+  | Allocations
+  | Calls
+  | Indirect_calls
 
-let print_mode =
+let print_raw_mode =
   let mode =
-    Arg.enum ["words", `Words; "blocks", `Blocks; "allocations", `Allocations]
+    Arg.enum
+      [ "words", Words;
+        "blocks", Blocks;
+        "allocations", Allocations;
+        "calls", Calls;
+        "indirect-calls", Indirect_calls; ]
   in
   let doc =
-    "Numbers to output. $(docv) should be one of words, blocks and allocations"
+    "Numbers to output. $(docv) should be one of \
+     words, blocks, allocations, calls or indirect-calls"
   in
-  Arg.(value & opt mode `Words & info ["mode"] ~docv:"MODE" ~doc)
+  Arg.(value & opt mode Words & info ["mode"] ~docv:"MODE" ~doc)
 
-let print_snapshot_arg =
+let print_raw_index =
+  let doc = "$(docv) which snapshot to print" in
+  Arg.(value & pos 1 (some int) None & info [] ~docv:"SNAPSHOT-INDEX" ~doc)
+
+let print_mode =
+  let requires mode =
+    `Error(true, "Mode \"" ^ mode ^ "\" requires a snapshot index")
+  in
+  let not_requires mode =
+    `Error(true, "Mode \"" ^ mode ^ "\" does not require a snapshot index")
+  in
+  let convert mode index =
+    match mode with
+    | Words -> begin
+        match index with
+        | None -> requires "words"
+        | Some index -> `Ok (Print.Mode.Words { index })
+      end
+    | Blocks -> begin
+        match index with
+        | None -> requires "blocks"
+        | Some index -> `Ok (Print.Mode.Blocks { index })
+      end
+    | Allocations -> begin
+        match index with
+        | None -> requires "allocations"
+        | Some index -> `Ok (Print.Mode.Allocations { index })
+      end
+    | Calls -> begin
+        match index with
+        | None -> `Ok Print.Mode.Calls
+        | Some _ -> not_requires "calls"
+      end
+    | Indirect_calls -> begin
+        match index with
+        | None -> `Ok Print.Mode.Indirect_calls
+        | Some _ -> not_requires "indirect-calls"
+      end
+  in
+  Term.(ret (pure convert $ print_raw_mode $ print_raw_index))
+
+let inverted =
+  let doc = "Aggregate traces by their outer-most frame" in
+  Arg.(value & flag & info ["i";"inverted"] ~doc)
+
+let print_arg =
   Term.(pure
-          (fun processed snapshot_index mode inverted
+          (fun processed mode inverted
             print_filename print_symbol print_line_number ->
-            Print_snapshot
-              { processed ; mode ; inverted ; snapshot_index
+            Print
+              { processed ; mode ; inverted
               ; print_filename ; print_symbol ; print_line_number })
-        $ processed $ print_snapshot_index $ print_mode $ inverted
+        $ processed $ print_mode $ inverted
         $ print_filename $ print_symbol $ print_line_number)
 
-let print_snapshot_t =
-  let doc = "Print details of snapshot to stdout" in
-  Term.(pure main $ print_snapshot_arg $ profile $ executable, info "print" ~doc)
+let print_t =
+  let doc = "Print data to stdout" in
+  Term.(pure main $ print_arg $ profile $ executable, info "print" ~doc)
 ;;
 
 (* View options *)
 
 let view_arg =
   Term.(pure
-          (fun processed inverted -> View { processed; inverted })
-        $ processed $ inverted)
+          (fun processed -> View { processed; })
+        $ processed)
 
 let view_t =
   let doc = "View allocation profile in terminal" in
@@ -204,7 +226,8 @@ let default_t =
 
 let () =
   match Term.eval_choice default_t
-          [serve_t; view_t; process_t; dump_t; print_snapshot_t] with
+          [serve_t; view_t; process_t; print_t]
+  with
   | `Error _ -> exit 1
   | `Ok () -> exit 0
   | `Help -> exit 0

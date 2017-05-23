@@ -1,16 +1,12 @@
 
 type t
 
-val initial : Spacetime_lib.Series.t -> inverted:bool -> t
-
-val project : t -> Address.t -> t
-
-val projections : t -> t Address.Map.t
-
-val locations : t -> Location.t Address.Map.t
-
-val addresses : t -> Address.Set.t
+val create : Spacetime_lib.Series.t -> t
 
 val snapshots : t -> Snapshot.t list
 
-val to_json : Path.t -> t -> Yojson.Basic.json
+val has_call_counts : t -> bool
+
+val final_time : t -> float
+
+val call_entries : t -> inverted:bool -> Section.Call.t Section.t

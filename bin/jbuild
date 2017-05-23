@@ -1,6 +1,6 @@
 (jbuild_version 1)
 
 (executable
- ((name main)
+ ((name prof_spacetime)
   (public_name prof_spacetime)
-  (libraries (prof_spacetime_lib))))
+  (libraries (prof_spacetime_lib cmdliner))))
