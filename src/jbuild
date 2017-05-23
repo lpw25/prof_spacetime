@@ -2,13 +2,12 @@
 
 (library
  ((name prof_spacetime_lib)
-   (libraries
+  (libraries
    (yojson
-   spacetime_lib
-   lwt
-   cohttp-lwt-unix
-   cohttp
-   lambda-term
-   cmdliner))
-  (wrapped false)))
+    spacetime_lib
+    lwt
+    cohttp-lwt-unix
+    cohttp
+    lambda-term
+    cmdliner))))
 

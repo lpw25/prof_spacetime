@@ -60,7 +60,9 @@ var mode_widget_vert = 60;
 
 d3.select("body").append("div")
     .attr("align", "center")
-    .text("Mouse over the graph to show where values were allocated.  Values allocated from non-OCaml code have their mouse-over popup text in green.  Click a portion of the graph to move up the stack.")
+    .text("Mouse over the graph to show where values were allocated.  " +
+          "Values allocated from non-OCaml code have their mouse-over popup " +
+          "text in green.  Click a portion of the graph to move up the stack.")
 
 var mode_widget =
   d3.select("body")
@@ -205,9 +207,6 @@ var frame_widget = d3.select("body").append("ul");
 
 function graph(input, dispatch) {
 
-  var locations = d3.entries(input.locations);
-  var snapshots = input.snapshots;
-
   var modes =
     mode_widget.selectAll("li")
       .data(input.modes);
@@ -226,29 +225,17 @@ function graph(input, dispatch) {
 
   modes.exit().remove();
 
-  color1.domain(locations.map(function (location)
-     { return location.key }));
-  color2.domain(locations.map(function (location)
-     { return location.key }).reverse());
+  color1.domain(input.layers.map(function (layer)
+     { return layer.index }));
+  color2.domain(input.layers.map(function (layer)
+     { return location.index }).reverse());
 
-  var layers = stack(locations.map(function(location) {
-    return {
-      addr: location.key,
-      display: location.value.display,
-      foreign: location.value.foreign,
-      path: location.value.path,
-      values: snapshots.map(function(d) {
-        return {time: d.time, y: d.values[location.key]};
-      })
-    };
-  }));
+  var layers = stack(input.layers);
 
-  var max_x = d3.max(snapshots, function(d) { return d.time; });
-  var max_y = d3.max(snapshots, function(d) {
-    return d3.sum(layers, function (b) { return d.values[b.addr]; });
-  });
+  var max_time = input.max_time;
+  var max_y = input.max_y;
 
-  x.domain([0, max_x]);
+  x.domain([0, max_time]);
   y.domain([0, max_y]);
 
   if(input.bytes) {
@@ -308,9 +295,9 @@ function graph(input, dispatch) {
     .on("click", function (d) { dispatch.select(d.path); })
     .attr("fill", function(d) {
        if(input.depth % 2 == 0) {
-         return color1(d.addr);
+         return color1(d.index);
        } else {
-         return color2(d.addr);
+         return color2(d.index);
        }
      });
 

@@ -1,5 +1,5 @@
 opam-version: "1.2"
-version: "0.1.0+dev"
+version: "0.2.0+dev"
 maintainer: "Leo White <leo@lpw25.net>"
 authors: [ "Leo White <leo@lpw25.net>" ]
 homepage: "https://github.com/lpw25/prof_spacetime"
@@ -11,15 +11,17 @@ depends: [
   "cmdliner"
   "cohttp" {>= "0.99.0"}
   "cohttp-lwt-unix"
+  "conduit"
+  "conduit-lwt-unix"
   "yojson"
   "lwt"
   "lambda-term"
-  "spacetime_lib"
+  "spacetime_lib" { >= "0.2" }
 ]
-
 build: [
   ["jbuilder" "subst" "-n" name] {pinned}
   ["jbuilder" "build" "-p" name "-j" jobs]
 ]
-build-test: [["jbuilder" "runtest" "-p" name "-j" jobs]]
-
+build-test: [
+  ["jbuilder" "runtest" "-p" name "-j" jobs]
+]
