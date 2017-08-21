@@ -1,0 +1,14 @@
+(jbuild_version 1)
+
+(library
+ ((name prof_spacetime_lib)
+   (libraries
+   (yojson
+   spacetime_lib
+   lwt
+   cohttp-lwt-unix
+   cohttp
+   lambda-term
+   cmdliner))
+  (wrapped false)))
+
