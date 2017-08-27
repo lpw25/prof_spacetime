@@ -3,6 +3,7 @@ type command =
   | Serve of { address: string; port: int; processed: bool; inverted: bool; }
   | Dump of { dir: string; processed: bool; inverted: bool }
   | View of { processed: bool; inverted: bool; }
+  | View_calls of { processed: bool; }
   | Print_snapshot of { processed:         bool
                       ; snapshot_index:    int
                       ; mode:              [`Words | `Blocks | `Allocations]
@@ -32,6 +33,7 @@ let main command profile executable =
     | Serve { processed; _ }
     | Dump { processed; _ }
     | View { processed; _ }
+    | View_calls { processed; _ }
     | Print_snapshot { processed; _ } -> processed
     | Process -> false
   in
@@ -41,8 +43,17 @@ let main command profile executable =
     | Some executable -> Filename.basename executable
   in
   let data =
+    let mode =
+      match command with
+      | Serve _
+      | Dump _
+      | View _
+      | Print_snapshot _
+      | Process -> Spacetime_lib.Series.For_allocations
+      | View_calls _ -> Spacetime_lib.Series.For_calls
+    in
     if processed then unmarshal_profile profile
-    else Spacetime_lib.Series.create ?executable profile
+    else Spacetime_lib.Series.create ?executable mode profile
   in
   Printf.printf "done\n%!";
   match command with
@@ -50,6 +61,8 @@ let main command profile executable =
     Serve.serve ~address ~port ~title (Series.initial data ~inverted)
   | Dump { dir; inverted } -> Dump.dump ~dir ~title (Series.initial data ~inverted)
   | View { inverted} -> Viewer.show (Series.initial data ~inverted)
+  | View_calls _ ->
+    Viewer.show_calls (Series.initial data ~inverted:false)
   | Print_snapshot { snapshot_index
                    ; mode
                    ; inverted
@@ -185,6 +198,17 @@ let view_t =
   let doc = "View allocation profile in terminal" in
   Term.(pure main $ view_arg $ profile $ executable, info "view" ~doc)
 
+(* View-calls options *)
+
+let view_calls_arg =
+  Term.(pure (fun processed -> View_calls { processed; })
+        $ processed)
+
+let view_calls_t =
+  let doc = "View call counts in terminal" in
+  Term.(pure main $ view_calls_arg $ profile $ executable,
+    info "view-calls" ~doc)
+
 (* Process options *)
 
 let process_arg = Term.pure Process
@@ -204,7 +228,9 @@ let default_t =
 
 let () =
   match Term.eval_choice default_t
-          [serve_t; view_t; process_t; dump_t; print_snapshot_t] with
+          [serve_t; view_t; view_calls_t; process_t; dump_t;
+           print_snapshot_t]
+  with
   | `Error _ -> exit 1
   | `Ok () -> exit 0
   | `Help -> exit 0

@@ -3,6 +3,8 @@ type mode =
   | Bytes
   | Blocks
   | Allocations
+  | Indirect_calls
+  | Direct_calls
 
 type kind =
   | Reduced
@@ -35,6 +37,8 @@ let project t addr = { t with addresses = addr :: t.addresses }
 let bytes_mode = "/bytes"
 let blocks_mode = "/block"
 let allocations_mode = "/alloc"
+let indirect_calls_mode = "/indirect-calls"
+let direct_calls_mode = "/direct-calls"
 
 let mode_len =
   let bytes_len = String.length bytes_mode in
@@ -94,6 +98,7 @@ let of_string s =
           if mode = bytes_mode then Some Bytes
           else if mode = blocks_mode then Some Blocks
           else if mode = allocations_mode then Some Allocations
+          else if mode = indirect_calls_mode then Some Indirect_calls
           else None
         in
         let kind =
@@ -143,3 +148,4 @@ let mode_to_display_string = function
   | Bytes -> "Live words"
   | Blocks -> "Live blocks"
   | Allocations -> "All allocated words"
+  | Indirect_calls -> "Indirect calls"
