@@ -9,7 +9,7 @@ dev-repo: "git://github.com/lpw25/prof_spacetime"
 depends: [
   "jbuilder" {build & >= "1.0+beta10"}
   "cmdliner"
-  "cohttp" {>= "0.99.0"}
+  "cohttp" {>= "1.0.0"}
   "cohttp-lwt-unix"
   "conduit"
   "conduit-lwt-unix"
