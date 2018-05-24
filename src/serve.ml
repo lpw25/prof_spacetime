@@ -275,7 +275,7 @@ let serve ~address ~port ~title series =
   let server = Server.make ~callback () in
   let body =
     ctx >>= fun ctx ->
-    let ctx = Cohttp_lwt_unix_net.init ~ctx () in
+    let ctx = Cohttp_lwt_unix.Net.init ~ctx () in
     Server.create ~ctx ~mode server
   in
   Printf.printf "Serving on http://%s:%d/\n%!" address port;
