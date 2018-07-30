@@ -72,3 +72,5 @@ val project : 'a t -> Address.t -> 'a Item.t option
 val select : 'a t -> Address.t -> 'a t
 
 val fold : (Address.t -> 'a Item.t -> 'b -> 'b) -> 'a t -> 'b -> 'b
+
+val iter : (Address.t -> 'a Item.t -> unit) -> 'a t -> unit
