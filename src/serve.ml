@@ -230,6 +230,11 @@ module Json = struct
 
 end
 
+(* Workaround for:
+
+     https://github.com/mirage/ocaml-cohttp/issues/511 *)
+let () =
+  Lwt.async_exception_hook := ignore
 
 let serve ~address ~port ~title series =
   let memo = Chart.Memo.create ~series in
