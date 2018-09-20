@@ -12,7 +12,8 @@ type command =
         print_line_number: bool; }
   | Process
   | Diff of
-      { reference: string;
+      { processed: bool
+      ; reference: string;
       }
 
 let unmarshal_profile file : Spacetime_lib.Series.t =
@@ -27,6 +28,15 @@ let marshal_profile (profile : Spacetime_lib.Series.t) file =
   | data -> close_out oc; data
   | exception exn -> close_out oc; raise exn
 
+let load_series processed executable profile =
+  if processed then unmarshal_profile profile
+  else begin
+    Printf.printf "Processing series...%!";
+    let series = Spacetime_lib.Series.create ?executable profile in
+    Printf.printf "done\n%!";
+    series
+  end
+
 let main command profile executable =
   let processed =
     match command with
@@ -34,17 +44,9 @@ let main command profile executable =
     | View { processed; _ }
     | Print { processed; _ } -> processed
     | Process -> false
-    | Diff _ -> true
+    | Diff { processed; _ } -> processed
   in
-  let data =
-    if processed then unmarshal_profile profile
-    else begin
-      Printf.printf "Processing series...%!";
-      let series = Spacetime_lib.Series.create ?executable profile in
-      Printf.printf "done\n%!";
-      series
-    end
-  in
+  let data = load_series processed executable profile in
   match command with
   | Serve { address; port; } ->
       let title =
@@ -65,9 +67,9 @@ let main command profile executable =
   | Process ->
     marshal_profile data (profile ^ ".p")
   | Diff { reference } ->
-    let ref_data = Series.create (unmarshal_profile reference) in
+    let ref_data = load_series processed executable reference in
     let series = Series.create data in
-    Diff.diff ref_data series
+    Diff.diff (Series.create ref_data) series
 
 open Cmdliner
 
@@ -212,7 +214,10 @@ let print_t =
 ;;
 
 let compare_arg =
-  Term.(pure (fun reference -> Diff { reference; }) $ reference)
+  Term.(pure
+      (fun processed reference -> Diff { reference; processed })
+      $ processed
+      $ reference)
 
 let compare_t =
   let doc = "Compare two processed profiles" in
