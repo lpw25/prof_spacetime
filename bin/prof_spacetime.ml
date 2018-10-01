@@ -11,6 +11,10 @@ type command =
         print_symbol:      bool;
         print_line_number: bool; }
   | Process
+  | Diff of
+      { processed: bool
+      ; reference: string;
+      }
 
 let unmarshal_profile file : Spacetime_lib.Series.t =
   let ic = open_in_bin file in
@@ -24,27 +28,32 @@ let marshal_profile (profile : Spacetime_lib.Series.t) file =
   | data -> close_out oc; data
   | exception exn -> close_out oc; raise exn
 
+let load_series processed executable profile =
+  if processed then unmarshal_profile profile
+  else begin
+    Printf.printf "Processing series...%!";
+    let series = Spacetime_lib.Series.create ?executable profile in
+    Printf.printf "done\n%!";
+    series
+  end
+
 let main command profile executable =
-  Printf.printf "Processing series...%!";
   let processed =
     match command with
     | Serve { processed; _ }
     | View { processed; _ }
     | Print { processed; _ } -> processed
     | Process -> false
+    | Diff { processed; _ } -> processed
   in
-  let title =
-    match executable with
-    | None -> "Anonymous"
-    | Some executable -> Filename.basename executable
-  in
-  let data =
-    if processed then unmarshal_profile profile
-    else Spacetime_lib.Series.create ?executable profile
-  in
-  Printf.printf "done\n%!";
+  let data = load_series processed executable profile in
   match command with
   | Serve { address; port; } ->
+      let title =
+        match executable with
+        | None -> "Anonymous"
+        | Some executable -> Filename.basename executable
+      in
       let series = Series.create data in
       Serve.serve ~address ~port ~title series
   | View _ ->
@@ -57,6 +66,10 @@ let main command profile executable =
      ~mode ~inverted ~print_filename ~print_symbol ~print_line_number
   | Process ->
     marshal_profile data (profile ^ ".p")
+  | Diff { reference } ->
+    let ref_data = load_series processed executable reference in
+    let series = Series.create data in
+    Diff.diff (Series.create ref_data) series
 
 open Cmdliner
 
@@ -65,6 +78,10 @@ open Cmdliner
 let profile =
   let doc = "$(docv) to view" in
   Arg.(required & pos 0 (some string) None & info [] ~docv:"PROFILE" ~doc)
+
+let reference =
+  let doc = "$(docv) reference" in
+  Arg.(required & pos 1 (some string) None & info [] ~docv:"REFERNCE" ~doc)
 
 let executable =
   let doc = "Specify the ELF executable that was profiled" in
@@ -196,6 +213,17 @@ let print_t =
   Term.(pure main $ print_arg $ profile $ executable, info "print" ~doc)
 ;;
 
+let compare_arg =
+  Term.(pure
+      (fun processed reference -> Diff { reference; processed })
+      $ processed
+      $ reference)
+
+let compare_t =
+  let doc = "Compare two processed profiles" in
+  Term.(pure main $ compare_arg $ profile $ executable, info "compare" ~doc)
+;;
+
 (* View options *)
 
 let view_arg =
@@ -226,7 +254,7 @@ let default_t =
 
 let () =
   match Term.eval_choice default_t
-          [serve_t; view_t; process_t; print_t]
+          [serve_t; view_t; process_t; print_t; compare_t]
   with
   | `Error _ -> exit 1
   | `Ok () -> exit 0

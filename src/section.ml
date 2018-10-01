@@ -213,3 +213,6 @@ let select t addr =
 
 let fold f t init =
   Address.Map.fold f t init
+
+let iter f t =
+  Address.Map.iter f t
