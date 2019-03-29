@@ -1,0 +1,4 @@
+(executable
+ (name prof_spacetime)
+ (public_name prof_spacetime)
+ (libraries prof_spacetime_lib cmdliner))
