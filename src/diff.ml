@@ -10,7 +10,6 @@ let empty_diff = { allocations = 0; words = 0; blocks = 0 }
 module AllocMap = Map.Make(String)
 module NameSet = Set.Make(String)
 
-
 let get_alloc_map snapshot =
   let rec loop snapshot acc =
     Section.fold Section.(fun _ item acc ->
@@ -21,15 +20,17 @@ let get_alloc_map snapshot =
       try
         let display = Item.display item in
         let name = String.sub display 0 (String.index display ':') in
-        AllocMap.update name (fun v -> Some (match v with
-          | None ->
-            { words; allocations; blocks }
-          | Some v ->
-            { words = words + v.words
-            ; allocations = allocations + v.allocations
-            ; blocks = blocks + v.blocks
-            }
-        )) acc
+        let value =
+          match AllocMap.find name acc with
+          | exception Not_found ->
+              { words; allocations; blocks}
+          | v ->
+              let words = words + v.words in
+              let allocations = allocations + v.allocations in
+              let blocks = blocks + v.blocks in
+              { words; allocations; blocks}
+        in
+        AllocMap.add name value acc
       with Not_found -> loop (Item.select item) acc
     ) snapshot acc
   in
