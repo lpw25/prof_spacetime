@@ -113,11 +113,11 @@ module Path = struct
   let create mode direction addresses =
     { mode; direction; addresses }
 
-  let mode { mode } = mode
+  let mode { mode; _ } = mode
 
-  let direction { direction } = direction
+  let direction { direction; _ } = direction
 
-  let addresses { addresses } = addresses
+  let addresses { addresses; _ } = addresses
 
   let with_mode t mode = { t with mode }
 
@@ -171,15 +171,15 @@ module Row = struct
   let create ~address ~value ~percentage ~display ~selection =
     { address; value; percentage; display; selection }
 
-  let address { address } = address
+  let address { address; _ } = address
 
-  let value { value } = value
+  let value { value; _ } = value
 
-  let percentage { percentage } = percentage
+  let percentage { percentage; _ } = percentage
 
-  let display { display } = display
+  let display { display; _ } = display
 
-  let selection { selection } = selection
+  let selection { selection; _ } = selection
 
   let dummy =
     { address = Address.of_int64 0L;
@@ -197,11 +197,11 @@ module Frame = struct
       selected : Address.t option;
       display : string option; }
 
-  let path { path } = path
+  let path { path; _ } = path
 
-  let selected { selected } = selected
+  let selected { selected; _ } = selected
 
-  let display { display } = display
+  let display { display; _ } = display
 
   let initial mode direction rest =
     let path = Path.create mode direction [] in
@@ -346,11 +346,11 @@ let row t i =
 
 let size t = Array.length t.rows
 
-let frames { frames } = frames
+let frames { frames; _ } = frames
 
-let time { time } = time
+let time { time; _ } = time
 
-let total { total } = total
+let total { total; _ } = total
 
 let find p t =
   let rec loop rows p i =

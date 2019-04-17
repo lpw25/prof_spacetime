@@ -22,11 +22,11 @@ let create series =
   { snapshots; has_call_counts; final_time;
     call_entries; inverted_call_entries }
 
-let snapshots { snapshots } = snapshots
+let snapshots { snapshots; _ } = snapshots
 
-let has_call_counts { has_call_counts } = has_call_counts
+let has_call_counts { has_call_counts; _ } = has_call_counts
 
-let final_time { final_time } = final_time
+let final_time { final_time; _ } = final_time
 
 let call_entries t ~inverted =
   if inverted then Lazy.force t.inverted_call_entries

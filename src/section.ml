@@ -9,18 +9,18 @@ module Allocation = struct
   let create ~words ~blocks ~allocations =
     { words; blocks; allocations }
 
-  let words { words } = words
+  let words { words; _ } = words
 
   let byte_size = 8
 
   let word_size =
     Sys.word_size / byte_size
 
-  let bytes { words } = words * word_size
+  let bytes { words; _ } = words * word_size
 
-  let blocks { blocks } = blocks
+  let blocks { blocks; _ } = blocks
 
-  let allocations { allocations } = allocations
+  let allocations { allocations; _ } = allocations
 
   let zero =
     { words = 0;
@@ -43,9 +43,9 @@ module Call = struct
   let create ~calls ~direct =
     { calls; direct }
 
-  let calls { calls } = calls
+  let calls { calls; _ } = calls
 
-  let direct { direct } = direct
+  let direct { direct; _ } = direct
 
   let zero =
     { calls = 0;
@@ -72,15 +72,15 @@ module Item = struct
 
   type 'a t = 'a item
 
-  let display { display } = display
+  let display { display; _ } = display
 
-  let foreign { foreign } = foreign
+  let foreign { foreign; _ } = foreign
 
-  let path { path } = path
+  let path { path; _ } = path
 
-  let value { value } = value
+  let value { value; _ } = value
 
-  let empty { empty } = empty
+  let empty { empty; _ } = empty
 
   let select t = Lazy.force t.section
 

@@ -247,7 +247,7 @@ let serve ~address ~port ~title series =
   let header_html = header "text/html; charset=UTF-8" in
   let header_js = header "application/javascript; charset=UTF-8" in
   let header_json = header "application/json; charset=UTF-8" in
-  let callback conn_id req body =
+  let callback _ req _ =
     let uri = Request.uri req in
     let path = Uri.path uri in
     match path with

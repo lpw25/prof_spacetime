@@ -1,5 +1,4 @@
 open Lwt
-open LTerm_style
 open LTerm_text
 
 module State = struct
@@ -15,37 +14,18 @@ module State = struct
       first_visible_row : int;
       selected_row : int; }
 
-  let table { table } = table
+  let table { table; _ } = table
 
-  let path { path } = path
+  let path { path; _ } = path
 
-  let first_visible_row { first_visible_row } = first_visible_row
+  let first_visible_row { first_visible_row; _ } = first_visible_row
 
-  let selected_row { selected_row } = selected_row
+  let selected_row { selected_row; _ } = selected_row
 
-  let no_of_snapshots { no_of_snapshots } = no_of_snapshots
-
-  let pp ppf t =
-    Format.fprintf ppf
-      "@[<2>{@ memo = <memo>;@ \
-               has_calls = %a;@  \
-               no_of_snapshots = %i;@ \
-               snapshot = %i;@ \
-               table = <table>;@ \
-               path = %a;@ \
-               no_of_visible_rows = %i;@ \
-               first_visible_row = %i;@ \
-               selected_row = %i;@ }@]"
-      Format.pp_print_bool t.has_calls
-      t.no_of_snapshots
-      t.snapshot
-      Table.Path.pp t.path
-      t.no_of_visible_rows
-      t.first_visible_row
-      t.selected_row
+  let no_of_snapshots { no_of_snapshots; _ } = no_of_snapshots
 
   let create series =
-    let memo = Table.Memo.create series in
+    let memo = Table.Memo.create ~series in
     let has_calls = Series.has_call_counts series in
     let no_of_snapshots = List.length (Series.snapshots series) in
     let snapshot = 0 in
@@ -114,7 +94,7 @@ module State = struct
       Some address
 
   let update t address snapshot path =
-    let table = Table.Memo.table t.memo path in
+    let table = Table.Memo.table t.memo ~path in
     let selected_row =
       match address with
       | None -> 0
@@ -255,7 +235,7 @@ module State = struct
   let parent t =
     match Table.frames t.table with
     | [] | [_] -> t
-    | current :: parent :: _ ->
+    | _ :: parent :: _ ->
         let selected = Table.Frame.selected parent in
         let path = Table.Frame.path parent in
         update t selected t.snapshot path
@@ -416,28 +396,28 @@ let process_event state event =
   | LTerm_event.Resize size ->
       let rows = (LTerm_geom.rows size) - 1 in
       Update (State.resize state rows)
-  | LTerm_event.Key { code = LTerm_key.Tab; shift = false } ->
+  | LTerm_event.Key { code = LTerm_key.Tab; shift = false; _ } ->
       Update (State.next_mode state)
-  | LTerm_event.Key { code = LTerm_key.Tab; shift = true } ->
+  | LTerm_event.Key { code = LTerm_key.Tab; shift = true; _ } ->
       Update (State.previous_mode state)
-  | LTerm_event.Key { code = LTerm_key.Left } ->
+  | LTerm_event.Key { code = LTerm_key.Left; _ } ->
       Update (State.previous_snapshot state)
-  | LTerm_event.Key { code = LTerm_key.Right } ->
+  | LTerm_event.Key { code = LTerm_key.Right; _ } ->
       Update (State.next_snapshot state)
-  | LTerm_event.Key { code = LTerm_key.Up } ->
+  | LTerm_event.Key { code = LTerm_key.Up; _ } ->
       Update (State.previous_row state)
-  | LTerm_event.Key { code = LTerm_key.Down } ->
+  | LTerm_event.Key { code = LTerm_key.Down; _ } ->
       Update (State.next_row state)
-  | LTerm_event.Key { code = LTerm_key.Prev_page } ->
+  | LTerm_event.Key { code = LTerm_key.Prev_page; _ } ->
       Update (State.previous_page state)
-  | LTerm_event.Key { code = LTerm_key.Next_page } ->
+  | LTerm_event.Key { code = LTerm_key.Next_page; _ } ->
       Update (State.next_page state)
-  | LTerm_event.Key { code = LTerm_key.Enter } ->
+  | LTerm_event.Key { code = LTerm_key.Enter; _ } ->
       Update (State.select state)
-  | LTerm_event.Key { code = LTerm_key.Escape }
-  | LTerm_event.Key { code = LTerm_key.Backspace } ->
+  | LTerm_event.Key { code = LTerm_key.Escape; _ }
+  | LTerm_event.Key { code = LTerm_key.Backspace; _ } ->
       Update (State.parent state)
-  | LTerm_event.Key { code = LTerm_key.Char c; control } ->
+  | LTerm_event.Key { code = LTerm_key.Char c; control; _ } ->
       if CamomileLibrary.UChar.char_of c = 'q' then
         Quit
       else if control && CamomileLibrary.UChar.char_of c = 'c' then

@@ -9,11 +9,6 @@ module Mode = struct
       | Blocks
       | Allocations
 
-    let to_string = function
-      | Words -> "words"
-      | Blocks -> "blocks"
-      | Allocations -> "allocations"
-
   end
 
   module Call = struct
@@ -21,10 +16,6 @@ module Mode = struct
     type t =
       | Calls
       | Indirect_calls
-
-    let to_string = function
-      | Calls -> "calls"
-      | Indirect_calls -> "indirect-calls"
 
   end
 

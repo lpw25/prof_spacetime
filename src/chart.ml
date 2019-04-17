@@ -146,9 +146,9 @@ module Layer = struct
     let create ~time ~value =
       { time; value }
 
-    let time { time } = time
+    let time { time; _ } = time
 
-    let value { value } = value
+    let value { value; _ } = value
 
     let add t ts =
       let rec loop t = function
@@ -172,13 +172,13 @@ module Layer = struct
   let create ~points ~display ~foreign ~selection =
     { points; display; foreign; selection }
 
-  let points { points } = points
+  let points { points; _ } = points
 
-  let display { display } = display
+  let display { display; _ } = display
 
-  let foreign { foreign } = foreign
+  let foreign { foreign; _ } = foreign
 
-  let selection { selection } = selection
+  let selection { selection; _ } = selection
 
   let unknown path snapshots =
     match Path.addresses path, Path.mode path with
@@ -287,11 +287,11 @@ module Frame = struct
       selected : Address.t option;
       display : string option; }
 
-  let path { path } = path
+  let path { path; _ } = path
 
-  let selected { selected } = selected
+  let selected { selected; _ } = selected
 
-  let display { display } = display
+  let display { display; _ } = display
 
   let initial mode kind direction rest =
     let path = Path.create mode kind direction [] in
@@ -331,15 +331,15 @@ type t =
     max_value : int;
     max_time : float; }
 
-let path { path } = path
+let path { path; _ } = path
 
-let layers { layers } = layers
+let layers { layers; _ } = layers
 
-let frames { frames } = frames
+let frames { frames; _ } = frames
 
-let max_value { max_value } = max_value
+let max_value { max_value; _ } = max_value
 
-let max_time { max_time } = max_time
+let max_time { max_time; _ } = max_time
 
 let chart ~series ~path =
   let snapshots = Series.snapshots series in

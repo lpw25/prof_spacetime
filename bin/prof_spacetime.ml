@@ -48,7 +48,7 @@ let main command profile executable =
   in
   let data = load_series processed executable profile in
   match command with
-  | Serve { address; port; } ->
+  | Serve { address; port; _ } ->
       let title =
         match executable with
         | None -> "Anonymous"
@@ -59,14 +59,13 @@ let main command profile executable =
   | View _ ->
       let series = Series.create data in
       Viewer.show series
-  | Print
-      { mode; inverted;
-        print_filename; print_symbol; print_line_number; } ->
-    Print.print data
-     ~mode ~inverted ~print_filename ~print_symbol ~print_line_number
+  | Print { mode; inverted; print_filename;
+            print_symbol; print_line_number; _ } ->
+      Print.print data
+        ~mode ~inverted ~print_filename ~print_symbol ~print_line_number
   | Process ->
     marshal_profile data (profile ^ ".p")
-  | Diff { reference } ->
+  | Diff { reference; _ } ->
     let ref_data = load_series processed executable reference in
     let series = Series.create data in
     Diff.diff (Series.create ref_data) series
