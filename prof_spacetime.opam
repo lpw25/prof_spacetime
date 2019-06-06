@@ -1,4 +1,5 @@
 opam-version: "2.0"
+name: "prof_spacetime"
 version: "0.3.0+dev"
 synopsis: "A viewer for OCaml spacetime profiles"
 maintainer: "Leo White <leo@lpw25.net>"
