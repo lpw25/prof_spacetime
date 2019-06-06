@@ -1,12 +1,13 @@
-opam-version: "1.2"
+opam-version: "2.0"
 version: "0.2.0+dev"
+synopsis: "A viewer for OCaml spacetime profiles"
 maintainer: "Leo White <leo@lpw25.net>"
-authors: [ "Leo White <leo@lpw25.net>" ]
+authors: "Leo White <leo@lpw25.net>"
+license: "MIT"
 homepage: "https://github.com/lpw25/prof_spacetime"
 bug-reports: "https://github.com/lpw25/prof_spacetime/issues"
-license: "MIT"
-dev-repo: "git://github.com/lpw25/prof_spacetime"
 depends: [
+  "ocaml"
   "dune" {build & >= "1.0"}
   "cmdliner"
   "cohttp" {>= "1.0.0"}
@@ -16,13 +17,15 @@ depends: [
   "yojson"
   "lwt"
   "lambda-term"
-  "spacetime_lib" { >= "0.2" }
+  "spacetime_lib" {>= "0.2"}
   "stdlib-shims"
 ]
 build: [
   ["dune" "subst"] {pinned}
   ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
 ]
-build-test: [
-  ["dune" "runtest" "-p" name "-j" jobs]
-]
+dev-repo: "git://github.com/lpw25/prof_spacetime"
+description: """
+`prof_spacetime` is a viewer for OCaml spacetime profiles. It provides
+both terminal and broswer based modes for viewing profiles."""
