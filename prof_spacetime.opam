@@ -17,6 +17,7 @@ depends: [
   "lwt"
   "lambda-term"
   "spacetime_lib" { >= "0.2" }
+  "stdlib-shims"
 ]
 build: [
   ["dune" "subst"] {pinned}

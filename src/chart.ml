@@ -154,7 +154,7 @@ module Layer = struct
       let rec loop t = function
         | [] -> [t]
         | s :: rest ->
-          if Pervasives.compare t.time s.time = 0 then
+          if Stdlib.compare t.time s.time = 0 then
             { time = s.time; value = t.value + s.value; } :: rest
           else
             s :: loop t rest
