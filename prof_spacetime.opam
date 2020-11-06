@@ -11,8 +11,8 @@ depends: [
   "ocaml"
   "dune" {build & >= "1.0"}
   "cmdliner"
-  "cohttp" {>= "1.0.0"}
-  "cohttp-lwt-unix"
+  "cohttp" {>= "1.0.0" & < "3.0.0"}
+  "cohttp-lwt-unix" {< "3.0.0"}
   "conduit"
   "conduit-lwt-unix"
   "yojson"
